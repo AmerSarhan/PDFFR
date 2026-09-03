@@ -9,7 +9,11 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    "paths": {
+      "pdffr": ["./packages/pdffr/src/index.ts"],
+      "pdffr/node": ["./packages/pdffr/src/node.ts"]
+    }
   },
   "include": ["packages/pdffr/src", "demo", "tests"]
 }

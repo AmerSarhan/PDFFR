@@ -1,0 +1,91 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Length 1469 >>
+stream
+BT /F1 9 Tf 72 760 Td (pdffr internal · Quarterly Operations Review) Tj ET
+BT /F1 9 Tf 540 40 Td (1) Tj ET
+BT /F2 24 Tf 72 700 Td (Quarterly Operations Review) Tj ET
+BT /F2 16 Tf 72 660 Td (Executive Summary) Tj ET
+BT /F1 11 Tf 72 635 Td (Throughput rose 14% quarter over quarter while unit cost held flat. This docu-) Tj ET
+BT /F1 11 Tf 72 620 Td (ment was produced natively, so every glyph carries an exact coordinate that the) Tj ET
+BT /F1 11 Tf 72 605 Td (decompiler reads directly. No page image is ever rendered for this text.) Tj ET
+BT /F2 11 Tf 72 585 Td (Bold lead-in.) Tj ET
+BT /F1 11 Tf 150 585 Td (The remainder of this sentence is regular weight and continues here.) Tj ET
+BT /F2 16 Tf 72 545 Td (Key Actions) Tj ET
+BT /F1 11 Tf 80 520 Td (• Re-thread reading order across multi-column layouts) Tj ET
+BT /F1 11 Tf 80 505 Td (• Reconstruct tables from column alignment) Tj ET
+BT /F1 11 Tf 80 490 Td (• Flag scanned pages for OCR instead of guessing) Tj ET
+BT /F2 16 Tf 72 455 Td (Regional Performance) Tj ET
+BT /F2 11 Tf 72 430 Td (Region) Tj ET
+BT /F2 11 Tf 250 430 Td (Units) Tj ET
+BT /F2 11 Tf 400 430 Td (Change) Tj ET
+BT /F1 11 Tf 72 414 Td (North) Tj ET
+BT /F1 11 Tf 250 414 Td (4,210) Tj ET
+BT /F1 11 Tf 400 414 Td (+12%) Tj ET
+BT /F1 11 Tf 72 398 Td (South) Tj ET
+BT /F1 11 Tf 250 398 Td (3,880) Tj ET
+BT /F1 11 Tf 400 398 Td (+9%) Tj ET
+BT /F1 11 Tf 72 382 Td (West) Tj ET
+BT /F1 11 Tf 250 382 Td (5,120) Tj ET
+BT /F1 11 Tf 400 382 Td (+18%) Tj ET
+
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 1116 >>
+stream
+BT /F1 9 Tf 72 760 Td (pdffr internal · Quarterly Operations Review) Tj ET
+BT /F1 9 Tf 540 40 Td (2) Tj ET
+BT /F2 16 Tf 72 720 Td (Two-Column Analysis) Tj ET
+BT /F1 11 Tf 72 690 Td (Left column begins here and runs) Tj ET
+BT /F1 11 Tf 320 690 Td (Right column text should come after) Tj ET
+BT /F1 11 Tf 72 675 Td (down the page in a narrow measure) Tj ET
+BT /F1 11 Tf 320 675 Td (all of the left column, not inter-) Tj ET
+BT /F1 11 Tf 72 660 Td (so that reading order must be re-) Tj ET
+BT /F1 11 Tf 320 660 Td (leaved with it. An XY-cut on white-) Tj ET
+BT /F1 11 Tf 72 645 Td (threaded by geometry rather than by) Tj ET
+BT /F1 11 Tf 320 645 Td (space finds the gutter between the) Tj ET
+BT /F1 11 Tf 72 630 Td (stream order. Each of these lines) Tj ET
+BT /F1 11 Tf 320 630 Td (columns and orders them correctly.) Tj ET
+BT /F1 11 Tf 72 615 Td (is emitted in the content stream in) Tj ET
+BT /F1 11 Tf 320 615 Td (Footnote reference appears here.) Tj ET
+BT /F1 11 Tf 72 600 Td (an interleaved way on purpose.) Tj ET
+BT /F1 11 Tf 320 600 Td (Second paragraph on the right side.) Tj ET
+BT /F1 7 Tf 410 608 Td (1) Tj ET
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000106 00000 n 
+0000000208 00000 n 
+0000001729 00000 n 
+0000001865 00000 n 
+0000003033 00000 n 
+0000003169 00000 n 
+0000003232 00000 n 
+trailer
+<< /Size 9 /Root 8 0 R >>
+startxref
+3281
+%%EOF

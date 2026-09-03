@@ -1,0 +1,63 @@
+{
+  "name": "pdffr",
+  "version": "0.1.0",
+  "description": "PDF → Markdown decompiler that runs entirely in the browser: native glyph geometry in milliseconds, render-diff-guided on-device OCR only where the text layer can't explain the ink.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:lib && npm run build:demo",
+    "build:lib": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "build:demo": "vite build",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build:lib"
+  },
+  "peerDependencies": {
+    "pdfjs-dist": ">=4.0.0",
+    "tesseract.js": ">=6.0.0"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "^6.3.289",
+    "tesseract.js": "^7.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.2.2"
+  },
+  "keywords": [
+    "pdf",
+    "markdown",
+    "pdf-to-markdown",
+    "pdf-to-text",
+    "ocr",
+    "tesseract",
+    "pdfjs",
+    "document-parsing",
+    "layout-analysis",
+    "browser",
+    "client-side",
+    "privacy"
+  ],
+  "author": "Amer Sarhan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmerSarhan/pdffr.git"
+  },
+  "homepage": "https://github.com/AmerSarhan/pdffr#readme",
+  "bugs": {
+    "url": "https://github.com/AmerSarhan/pdffr/issues"
+  }
+}

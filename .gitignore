@@ -9,3 +9,6 @@ coverage/
 packages/pdffr/README.md
 # private test documents
 demo/public/samples/user.pdf
+python/langchain-pdffr/.venv/
+python/langchain-pdffr/dist/
+*.egg-info/

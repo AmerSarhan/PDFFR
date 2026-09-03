@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "langchain-pdffr"
+version = "0.1.0"
+description = "LangChain document loader (and a plain converter) for pdffr: local PDF → Markdown, OCR only where the text layer can't explain the ink."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Amer Sarhan", email = "amer.sarhan@gmail.com" }]
+keywords = ["pdf", "markdown", "langchain", "document-loader", "ocr", "rag", "pdf-to-markdown"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Text Processing :: Markup :: Markdown",
+]
+dependencies = []
+
+[project.optional-dependencies]
+langchain = ["langchain-core>=0.2"]
+test = ["pytest>=8", "langchain-core>=0.2"]
+
+[project.urls]
+Homepage = "https://github.com/AmerSarhan/PDFFR"
+Documentation = "https://github.com/AmerSarhan/PDFFR/tree/main/python/langchain-pdffr#readme"
+Repository = "https://github.com/AmerSarhan/PDFFR"
+Issues = "https://github.com/AmerSarhan/PDFFR/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/langchain_pdffr", "src/pdffr"]

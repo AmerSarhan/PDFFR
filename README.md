@@ -96,6 +96,7 @@ await terminateOcr(); // let the process exit once the tesseract workers are don
 pdffr scan.pdf                    # markdown on stdout, progress on stderr
 pdffr scan.pdf -o scan.md --lang eng+fra
 pdffr paper.pdf --no-ocr -q       # native text only, silent
+pdffr paper.pdf --json --pages 1-3  # per-page markdown, typed blocks and stats as JSON
 ```
 
 ### API
@@ -112,11 +113,17 @@ Types: `Block`, `ListItem`, `Run`, `Region`, `Rules`, `PageState`, `Stats`, `Pip
 
 ## Integrations
 
-| Package                                   | What it is                                                                                                       |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [`pdffr-mcp`](packages/mcp)               | MCP server for Claude Desktop / Claude Code / Cursor / any agent: `pdf_to_markdown`, `pdf_outline`, `pdf_tables` |
-| [`pdffr-langchain`](packages/langchain)   | LangChain.js document loader — one Markdown `Document` per page                                                  |
-| [`pdffr-llamaindex`](packages/llamaindex) | LlamaIndex.TS reader — one Markdown `Document` per page                                                          |
+| Package                                            | What it is                                                                                                                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`pdffr-mcp`](packages/mcp)                        | MCP server for Claude Desktop / Claude Code / Cursor / any agent: `pdf_to_markdown`, `pdf_outline`, `pdf_tables` — listed on the [MCP Registry](https://registry.modelcontextprotocol.io) |
+| [`pdffr-langchain`](packages/langchain)            | LangChain.js document loader — one Markdown `Document` per page                                                                                                                           |
+| [`pdffr-llamaindex`](packages/llamaindex)          | LlamaIndex.TS reader — one Markdown `Document` per page                                                                                                                                   |
+| [`langchain-pdffr`](python/langchain-pdffr) (PyPI) | Python: `pdffr.convert()` and a LangChain `PdffrLoader`, driving the CLI (needs Node 20+)                                                                                                 |
+
+```python
+from langchain_pdffr import PdffrLoader
+docs = PdffrLoader("report.pdf").load()   # one Markdown Document per page
+```
 
 ```json
 { "mcpServers": { "pdffr": { "command": "npx", "args": ["-y", "pdffr-mcp"] } } }
@@ -153,8 +160,13 @@ npm run dev
 
 The playground in `demo/` shows each page with the engine's decisions drawn on it — text it read straight from the file, regions it sent to OCR and what came back — beside the decompiled document. It opens on a sample report; drop any PDF onto it. Four canonical samples ship with it: a born-digital report (headings, bold runs, a list, a table, a two-column page, running header and page numbers), a full-page scan of the same report, a mixed document with a scanned insert inside native text, and one page each of a ruled table, a rotated sidebar and equations.
 
+## Benchmark
+
+[`docs/benchmark.md`](docs/benchmark.md) compares pdffr with pdf-parse, raw pdf.js text and pdf2md on the four samples — time, and how much of the reference structure (headings, table rows, list items, reading order) each tool reproduces. Regenerate with `npm run bench`; add a cloud parser to `bench/run.mjs` if you have a key.
+
 ## Documentation
 
+- [`docs/benchmark.md`](docs/benchmark.md) — reproducible comparison against other open-source PDF tools.
 - [`docs/architecture.md`](docs/architecture.md) — the pipeline, the render-diff oracle, the shared IR, and every heuristic with its threshold and rationale.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — layout of the code, the one rule for new heuristics, how to add a test.
 - [`CHANGELOG.md`](CHANGELOG.md)

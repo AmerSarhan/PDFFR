@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 — 2026-09-03
+
+- CLI: `--json` (per-page markdown, blocks and stats), `--pages`, `--version`.
+- `langchain-pdffr` on PyPI: Python `convert()` and a LangChain `PdffrLoader` driving the CLI.
+- `bench/`: reproducible comparison against pdf-parse, raw pdf.js text and pdf2md → `docs/benchmark.md`.
+
 ## 0.3.0 — 2026-09-03
 
 - Integrations: `pdffr-mcp` (MCP server: pdf_to_markdown, pdf_outline, pdf_tables), `pdffr-langchain` (LangChain.js loader), `pdffr-llamaindex` (LlamaIndex.TS reader) as workspace packages.

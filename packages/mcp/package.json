@@ -1,6 +1,7 @@
 {
   "name": "pdffr-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.AmerSarhan/pdffr-mcp",
   "description": "MCP server for pdffr: PDF → Markdown for AI agents, local and private. Tools: pdf_to_markdown, pdf_outline, pdf_tables.",
   "type": "module",
   "bin": {

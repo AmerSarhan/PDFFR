@@ -1,0 +1,37 @@
+name: MCP Registry
+
+# Publishes packages/mcp/server.json to the official MCP Registry
+# (https://registry.modelcontextprotocol.io). Ownership of the io.github.AmerSarhan/*
+# namespace is proven with GitHub OIDC from this repository — no tokens involved.
+# Run it after `pdffr-mcp` at the version in server.json is live on npm.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+          mcp-publisher --help | head -3
+      - name: Validate server.json
+        working-directory: packages/mcp
+        run: mcp-publisher validate
+      - name: Check the npm package is live at this version
+        working-directory: packages/mcp
+        run: |
+          V=$(node -p "require('./server.json').version")
+          npm view "pdffr-mcp@$V" version
+      - name: Login (GitHub OIDC)
+        run: mcp-publisher login github-oidc
+      - name: Publish
+        working-directory: packages/mcp
+        run: mcp-publisher publish

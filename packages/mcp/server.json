@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.AmerSarhan/pdffr-mcp",
+  "title": "pdffr",
+  "description": "Local, private PDF → Markdown for agents: born-digital pages decompiled from glyph geometry in milliseconds, on-device OCR only where the text layer can't explain the ink. Tools: pdf_to_markdown, pdf_outline, pdf_tables.",
+  "repository": {
+    "url": "https://github.com/AmerSarhan/PDFFR",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "websiteUrl": "https://amersarhan.github.io/PDFFR/",
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "pdffr-mcp",
+      "version": "0.1.1",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

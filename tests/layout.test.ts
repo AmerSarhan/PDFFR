@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLines, bulletOf, detectTables, joinRuns, orderRuns } from '../src/engine/layout';
+import { buildLines, bulletOf, detectTables, joinRuns, orderRuns } from '../packages/pdffr/src/engine/layout';
 import { column, run } from './helpers';
 
 describe('buildLines', () => {

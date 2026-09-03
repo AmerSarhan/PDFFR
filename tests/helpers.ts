@@ -1,4 +1,4 @@
-import type { Run } from '../src/engine/types';
+import type { Run } from '../packages/pdffr/src/engine/types';
 
 /** Build a native run the way pdf.js extraction would: top-left origin, y downward. */
 export function run(text: string, x: number, y: number, size = 11, extra: Partial<Run> = {}): Run {

@@ -1,61 +1,24 @@
 {
-  "name": "pdffr",
+  "name": "pdffr-monorepo",
+  "private": true,
   "version": "0.3.0",
-  "description": "PDF → Markdown decompiler for the browser and Node: native glyph geometry in milliseconds, render-diff-guided on-device OCR only where the text layer can't explain the ink.",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./node": {
-      "types": "./dist/node.d.ts",
-      "import": "./dist/node.js"
-    }
-  },
-  "bin": {
-    "pdffr": "bin/pdffr.js"
-  },
-  "files": [
-    "dist",
-    "bin",
-    "README.md",
-    "LICENSE"
-  ],
-  "sideEffects": [
-    "./dist/index.js",
-    "./dist/node.js",
-    "./src/index.ts",
-    "./src/node.ts"
+  "workspaces": [
+    "packages/*"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:lib && npm run build:demo",
-    "build:lib": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "build:lib": "npm run build -w pdffr",
+    "build:packages": "npm run build -w pdffr-mcp -w pdffr-langchain -w pdffr-llamaindex",
     "build:demo": "vite build",
+    "build": "npm run build:lib && npm run build:packages && npm run build:demo",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build:lib && npm run link:local && npm run build:packages && vitest run",
+    "test": "npm run build:lib && npm run build:packages && vitest run",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build:lib",
-    "build:packages": "npm run build --workspaces",
-    "link:local": "rm -rf node_modules/pdffr && ln -s .. node_modules/pdffr"
-  },
-  "peerDependencies": {
-    "@napi-rs/canvas": ">=0.1.60",
-    "pdfjs-dist": ">=4.0.0",
-    "tesseract.js": ">=6.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@napi-rs/canvas": {
-      "optional": true
-    }
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.8",
@@ -70,33 +33,5 @@
     "@llamaindex/core": "^0.6.0",
     "@modelcontextprotocol/sdk": "^1.20.0"
   },
-  "keywords": [
-    "pdf",
-    "markdown",
-    "pdf-to-markdown",
-    "pdf-to-text",
-    "ocr",
-    "tesseract",
-    "pdfjs",
-    "document-parsing",
-    "layout-analysis",
-    "latex",
-    "browser",
-    "client-side",
-    "privacy",
-    "cli"
-  ],
-  "author": "Amer Sarhan <amer.sarhan@gmail.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AmerSarhan/PDFFR.git"
-  },
-  "homepage": "https://github.com/AmerSarhan/PDFFR#readme",
-  "bugs": {
-    "url": "https://github.com/AmerSarhan/PDFFR/issues"
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+  "license": "MIT"
 }

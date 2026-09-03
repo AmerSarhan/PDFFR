@@ -8,8 +8,11 @@
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "types": ["vite/client", "node"]
   },
-  "include": ["packages/pdffr/src", "demo", "tests"]
+  "include": ["src"]
 }

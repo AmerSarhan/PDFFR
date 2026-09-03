@@ -4,7 +4,7 @@
  * gaps.pdf     — a ruled table with a multi-line cell, a rotated sidebar, inline and display math
  */
 import { describe, expect, it } from 'vitest';
-import { decompileFile } from '../src/node';
+import { decompileFile } from '../packages/pdffr/src/node';
 
 describe('report.pdf (born-digital)', () => {
   it('decompiles to the expected markdown', async () => {

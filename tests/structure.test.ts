@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildLines, orderRuns } from '../src/engine/layout';
-import { bodySize, computeDropSet, toBlocks } from '../src/engine/structure';
-import { blocksToMarkdown } from '../src/engine/markdown';
-import type { Run } from '../src/engine/types';
+import { buildLines, orderRuns } from '../packages/pdffr/src/engine/layout';
+import { bodySize, computeDropSet, toBlocks } from '../packages/pdffr/src/engine/structure';
+import { blocksToMarkdown } from '../packages/pdffr/src/engine/markdown';
+import type { Run } from '../packages/pdffr/src/engine/types';
 import { column, run } from './helpers';
 
 function decompile(runs: Run[], pageH = 792, multiPage = false, drop = new Set<string>()) {

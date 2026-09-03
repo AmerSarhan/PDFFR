@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildLines, joinRuns, orderRuns } from '../src/engine/layout';
-import { bodySize, toBlocks } from '../src/engine/structure';
-import { blocksToMarkdown, joinPages } from '../src/engine/markdown';
-import type { Run } from '../src/engine/types';
+import { buildLines, joinRuns, orderRuns } from '../packages/pdffr/src/engine/layout';
+import { bodySize, toBlocks } from '../packages/pdffr/src/engine/structure';
+import { blocksToMarkdown, joinPages } from '../packages/pdffr/src/engine/markdown';
+import type { Run } from '../packages/pdffr/src/engine/types';
 import { run, wordsColumn } from './helpers';
 
 function decompile(runs: Run[], rules?: Parameters<typeof orderRuns>[1]) {

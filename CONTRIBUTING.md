@@ -14,25 +14,25 @@ npm run build      # library (dist/) and demo (dist-demo/)
 
 ## Layout of the code
 
-| Path                                                        | What it does                                                                                                                          |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/engine/env.ts`                                         | runtime abstraction (pdf.js build, canvas factory) installed by `src/index.ts` / `src/node.ts`                                        |
-| `src/engine/pdf.ts`                                         | pdf.js boundary: text layer → runs (with rotation and math flags), CTM-tracked image rectangles and ruling lines, rendering, cropping |
-| `src/engine/oracle.ts`                                      | render-diff oracle: ink mask − native glyph boxes → regions that need OCR                                                             |
-| `src/engine/ocr.ts`                                         | tesseract worker pool, second reads of doubtful words, text-plausibility gate                                                         |
-| `src/engine/layout.ts`                                      | runs → lines, bullet detection, table detection, XY-cut reading order                                                                 |
-| `src/engine/structure.ts`                                   | ordered leaves → typed blocks (headings, lists, paragraphs, tables), furniture stripping                                              |
-| `src/engine/markdown.ts`                                    | blocks → markdown text                                                                                                                |
-| `src/engine/pipeline.ts`                                    | orchestration: concurrent native pass, escalation, streaming events                                                                   |
-| `src/core.ts`                                               | public API (runtime-agnostic)                                                                                                         |
-| `src/index.ts`, `src/node.ts`, `bin/pdffr.js`               | browser entry, Node entry, CLI                                                                                                        |
-| `packages/mcp`, `packages/langchain`, `packages/llamaindex` | MCP server, LangChain.js loader, LlamaIndex.TS reader (npm workspaces)                                                                |
-| `demo/`                                                     | the playground app                                                                                                                    |
-| `docs/architecture.md`                                      | the reasoning behind every heuristic and threshold                                                                                    |
+| Path                                                         | What it does                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/pdffr/src/engine/env.ts`                           | runtime abstraction (pdf.js build, canvas factory) installed by `src/index.ts` / `src/node.ts`                                        |
+| `packages/pdffr/src/engine/pdf.ts`                           | pdf.js boundary: text layer → runs (with rotation and math flags), CTM-tracked image rectangles and ruling lines, rendering, cropping |
+| `packages/pdffr/src/engine/oracle.ts`                        | render-diff oracle: ink mask − native glyph boxes → regions that need OCR                                                             |
+| `packages/pdffr/src/engine/ocr.ts`                           | tesseract worker pool, second reads of doubtful words, text-plausibility gate                                                         |
+| `packages/pdffr/src/engine/layout.ts`                        | runs → lines, bullet detection, table detection, XY-cut reading order                                                                 |
+| `packages/pdffr/src/engine/structure.ts`                     | ordered leaves → typed blocks (headings, lists, paragraphs, tables), furniture stripping                                              |
+| `packages/pdffr/src/engine/markdown.ts`                      | blocks → markdown text                                                                                                                |
+| `packages/pdffr/src/engine/pipeline.ts`                      | orchestration: concurrent native pass, escalation, streaming events                                                                   |
+| `packages/pdffr/src/core.ts`                                 | public API (runtime-agnostic)                                                                                                         |
+| `packages/pdffr/src/index.ts`, `src/node.ts`, `bin/pdffr.js` | browser entry, Node entry, CLI (all inside `packages/pdffr`)                                                                          |
+| `packages/mcp`, `packages/langchain`, `packages/llamaindex`  | MCP server, LangChain.js loader, LlamaIndex.TS reader (npm workspaces)                                                                |
+| `demo/`                                                      | the playground app                                                                                                                    |
+| `docs/architecture.md`                                       | the reasoning behind every heuristic and threshold                                                                                    |
 
 ### Workspace packages
 
-`packages/*` depend on the published `pdffr`. npm copies a snapshot of the root into `node_modules/pdffr` at install time, so before building or testing them run `npm run link:local` (the `test` script does) to point that folder at the live root instead.
+The library is `packages/pdffr`; `packages/mcp`, `packages/langchain` and `packages/llamaindex` depend on it through npm workspaces, so `npm install` links them to the live source and `npm test` builds everything in order (`build:lib` → `build:packages` → vitest). The root package is private; the demo, tests, docs and CI live there.
 
 ## The one rule
 

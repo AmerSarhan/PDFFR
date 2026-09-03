@@ -6,5 +6,6 @@ coverage/
 *.log
 .vercel/
 .claude/
+packages/pdffr/README.md
 # private test documents
 demo/public/samples/user.pdf

@@ -8,8 +8,8 @@ import {
   joinPages,
   buildLines,
   orderRuns,
-} from '../src/index';
-import type { Block, PageState, PipelineEvent, Stats } from '../src/engine/types';
+} from '../packages/pdffr/src/index';
+import type { Block, PageState, PipelineEvent, Stats } from '../packages/pdffr/src/engine/types';
 
 setPdfWorkerSrc(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href);
 

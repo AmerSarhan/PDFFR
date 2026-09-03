@@ -27,7 +27,9 @@
   ],
   "sideEffects": [
     "./dist/index.js",
-    "./dist/node.js"
+    "./dist/node.js",
+    "./src/index.ts",
+    "./src/node.ts"
   ],
   "engines": {
     "node": ">=20"

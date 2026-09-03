@@ -1,5 +1,9 @@
 # pdffr
 
+[![CI](https://github.com/AmerSarhan/PDDFR/actions/workflows/ci.yml/badge.svg)](https://github.com/AmerSarhan/PDDFR/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/pdffr.svg)](https://www.npmjs.com/package/pdffr)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **A PDF decompiler, not an image reader.** PDF → Markdown, entirely in the browser, in milliseconds for born-digital pages — with on-device OCR spent only on the pixels the text layer can't explain.
 
 ```ts
@@ -103,7 +107,24 @@ npm install
 npm run dev
 ```
 
-The demo (`demo/`) shows a live decompiler trace beside the streaming markdown, with sample born-digital, scanned and mixed PDFs. Drop any PDF onto it.
+The playground in `demo/` shows each page with the engine's decisions drawn on it — text it read straight from the file, regions it sent to OCR and what came back — beside the decompiled document. It opens on a sample report; drop any PDF onto it. Three canonical samples ship with it: a born-digital report (headings, bold runs, a list, a table, a two-column page, running header and page numbers), a full-page scan of the same report, and a mixed document with a scanned insert inside native text.
+
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md) — the pipeline, the render-diff oracle, the shared IR, and every heuristic with its threshold and rationale.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — layout of the code, the one rule for new heuristics, how to add a test.
+- [`CHANGELOG.md`](CHANGELOG.md)
+
+## Development
+
+```bash
+npm test             # vitest: unit tests + a Node end-to-end run on the sample report
+npm run typecheck
+npm run format
+npm run build        # library to dist/, demo to dist-demo/
+```
+
+CI runs typecheck, format check, tests and the build on every push.
 
 ## Status and roadmap
 

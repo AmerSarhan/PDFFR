@@ -4,15 +4,70 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pdffr</title>
+    <meta
+      name="description"
+      content="A PDF decompiler that runs in your browser: native text in milliseconds, on-device OCR only where the page needs it."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap"
     />
   </head>
   <body>
-    <div id="app"></div>
+    <header class="bar">
+      <div class="brand">
+        <span class="name">pdffr</span>
+        <span class="sub">PDF decompiler · runs in this tab, nothing is uploaded</span>
+      </div>
+      <nav class="samples" aria-label="Sample documents">
+        <span class="lbl">Try</span>
+        <button class="lnk" data-src="/samples/report.pdf">Report</button>
+        <button class="lnk" data-src="/samples/scan.pdf">Scan</button>
+        <button class="lnk" data-src="/samples/mixed.pdf">Mixed</button>
+      </nav>
+      <div class="actions">
+        <label class="btn primary"
+          >Open PDF<input id="file" type="file" accept="application/pdf,.pdf" hidden
+        /></label>
+        <div class="seg" role="tablist" aria-label="Output view">
+          <button id="vRendered" role="tab" class="on">Rendered</button>
+          <button id="vSource" role="tab">Source</button>
+        </div>
+        <button id="copy" class="btn">Copy</button>
+        <button id="dl" class="btn">Download .md</button>
+        <button id="theme" class="btn icon" aria-label="Toggle light or dark theme">◐</button>
+      </div>
+    </header>
+
+    <main class="work">
+      <section class="pages" id="pages" aria-label="Pages">
+        <div class="hint" id="hint">
+          <p>Drop a PDF anywhere.</p>
+          <p class="fine">
+            Pages appear here with the engine's decisions drawn on them: text it read straight from the file,
+            and regions it had to send to OCR.
+          </p>
+        </div>
+      </section>
+      <section class="doc" aria-label="Output">
+        <article id="rendered" class="reading"></article>
+        <pre id="source" class="source" hidden></pre>
+      </section>
+    </main>
+
+    <footer class="status">
+      <span id="statusText">Open a PDF or pick a sample.</span>
+      <span class="key" aria-hidden="true">
+        <i class="sw native"></i>native text <i class="sw pending"></i>OCR pending <i class="sw done"></i>OCR
+        read <i class="sw reject"></i>graphics
+      </span>
+      <button id="logToggle" class="lnk">Show log</button>
+    </footer>
+    <section id="log" class="log" hidden aria-label="Decompiler log"></section>
+    <div id="dropveil" class="dropveil" hidden><span>Drop to decompile</span></div>
+
     <script type="module" src="/main.ts"></script>
   </body>
 </html>

@@ -85,10 +85,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AmerSarhan/PDDFR.git"
+    "url": "git+https://github.com/AmerSarhan/PDFFR.git"
   },
-  "homepage": "https://github.com/AmerSarhan/PDDFR#readme",
+  "homepage": "https://github.com/AmerSarhan/PDFFR#readme",
   "bugs": {
-    "url": "https://github.com/AmerSarhan/PDDFR/issues"
+    "url": "https://github.com/AmerSarhan/PDFFR/issues"
   }
 }

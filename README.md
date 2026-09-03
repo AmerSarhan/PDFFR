@@ -1,14 +1,14 @@
 # pdffr
 
-[![CI](https://github.com/AmerSarhan/PDDFR/actions/workflows/ci.yml/badge.svg)](https://github.com/AmerSarhan/PDDFR/actions/workflows/ci.yml)
+[![CI](https://github.com/AmerSarhan/PDFFR/actions/workflows/ci.yml/badge.svg)](https://github.com/AmerSarhan/PDFFR/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pdffr.svg)](https://www.npmjs.com/package/pdffr)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A PDF decompiler, not an image reader.** PDF → Markdown in the browser or Node, in milliseconds for born-digital pages — with on-device OCR spent only on the pixels the text layer can't explain.
 
-**[Try it in your browser →](https://amersarhan.github.io/PDDFR/)** — drop any PDF; it never leaves the tab.
+**[Try it in your browser →](https://amersarhan.github.io/PDFFR/)** — drop any PDF; it never leaves the tab.
 
-[![pdffr decompiling a mixed native + scanned document: the page on the left with native text tinted and the OCR region outlined, the markdown beside it](docs/demo.png)](https://amersarhan.github.io/PDDFR/)
+[![pdffr decompiling a mixed native + scanned document: the page on the left with native text tinted and the OCR region outlined, the markdown beside it](docs/demo.png)](https://amersarhan.github.io/PDFFR/)
 
 ```ts
 import { decompile } from 'pdffr';

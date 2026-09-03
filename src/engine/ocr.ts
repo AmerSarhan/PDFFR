@@ -214,8 +214,18 @@ export class OcrPool {
       for (const ws of lineGroups.values()) {
         const lineDens =
           median(ws.filter((x) => WORDY.test(x.run.text)).map((x) => stats.get(x)!.density)) || allDens;
+        const wordyN = ws.filter((x) => WORDY.test(x.run.text)).length;
         for (const x of ws) {
           if (!isShort(x)) {
+            // heavier strokes than the line's own words: bold (tesseract's LSTM reports no weight)
+            const s = stats.get(x)!;
+            if (
+              wordyN >= 3 &&
+              x.run.text.length >= 3 &&
+              WORDY.test(x.run.text) &&
+              s.density > lineDens * 1.45
+            )
+              x.run.bold = true;
             kept.add(x);
             continue;
           }

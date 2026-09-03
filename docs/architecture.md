@@ -99,6 +99,16 @@ Recursive, on runs, up to depth 8, for regions with ≥ 6 lines:
 
 Checking the gutter before horizontal bands is deliberate: XY-cut's classic failure is cutting a two-column page at a shared paragraph gap and then reading left-top, right-top, left-bottom, right-bottom.
 
+A gutter is worth cutting at when it carries one of three signatures, and only then — a table also has gutters, and a table must never be cut:
+
+- **Text columns**: prose on both sides (≥ 3 lines, median ≥ 18 chars) each spanning ≥ 30% of the region height.
+- **Label column**: a narrow left side that is not prose beside a right side that is, with ≥ 3× as many lines. The left lines become `label` leaves — headings over the paragraphs beside them (the structure pass orders leaves by y, so each label lands above its prose). This is the "**KSA-UAE tension** — paragraph" layout of reports.
+- **Card lanes**: lines that do not share baselines across the gap (fewer than half of the smaller side's lines have a partner within 0.35·size on the other side), both sides ≥ 3 lines and ≥ 30% of the region height. Table rows align across a gutter; independent lanes don't.
+
+### Letter-spaced text
+
+Designed headings are often tracked (`B U S I N E S S`), which pdf.js delivers as one run per glyph. When ≥ 70% of a line's runs are single glyphs (and there are ≥ 4), the median inter-run gap is the tracking; runs are joined without spaces and only a gap > 1.8× the tracking (+ 0.05·size) is a word break.
+
 ## 7. Structure (`structure.ts`)
 
 - **Body size** is the char-weighted modal line size, rounded to 0.5pt.
@@ -122,11 +132,21 @@ The same CTM walk that finds bitmaps records every stroked `lineTo` and every ha
 
 ## 10. Math (`pdf.ts` → `layout.ts` → `structure.ts`)
 
-A run is math if its font name matches `/symbol|cmmi|cmsy|cmex|cmr\d|math|mtextra|euclid|stix|xits|asana|mathjax|mathpi/` (bullet glyphs in Symbol excepted) or its text carries a math symbol (`∑ ∫ √ ≤ ≥ ≠ ± × ÷ ∂ ∇ ∈ → α–ω Γ–Ω …`). Within a line, math runs seed spans that grow over neighbouring sub/superscripts and short tokens (`x`, `=`, `+`, `2`, `(`) within 0.6·size. A script is a run under 0.72·size whose centre sits more than 0.12·size above (superscript) or below (subscript) the base runs' centre; scripts attach to the token on their left as `_{}` / `^{}`. Greek and symbols map to LaTeX commands; a lone `Σ`/`Π` larger than 1.08·size is `\sum`/`\prod`. A span renders as `$…$`; a line that is entirely one span and stands on its own (narrower than 85% of the leaf, or gapped from its neighbours) becomes a `$$…$$` block. Fractions, radicands, matrices and multi-line alignments are not reconstructed.
+A run is math if its font name matches `/symbol|cmmi|cmsy|cmex|cmr\d|math|mtextra|euclid|stix|xits|asana|mathjax|mathpi/` (bullet glyphs in Symbol excepted) or its text carries a math symbol (`∑ ∫ √ ≤ ≥ ≠ ± × ÷ ∂ ∇ ∈ → α–ω Γ–Ω …`). Within a line, math runs seed spans that grow over neighbouring sub/superscripts and short tokens (`x`, `=`, `+`, `2`, `(`) within 0.6·size. A script is a run under 0.72·size whose centre sits more than 0.12·size above (superscript) or below (subscript) the base runs' centre; scripts attach to the token on their left as `_{}` / `^{}`. Greek and symbols map to LaTeX commands; a lone `Σ`/`Π` larger than 1.08·size is `\sum`/`\prod`. A span renders as `$…$`; a line that is entirely one span and stands on its own (narrower than 85% of the leaf, or gapped from its neighbours) becomes a `$$…$$` block; consecutive display lines merge into one block joined by `\\`. A text-font run that is a single italic letter carrying a script also seeds a span (math typed without a math font).
+
+**Fractions** are folded before layout: a horizontal rule between 0.8·size and 220pt wide with runs whose bottom sits within 1.8·size above it and runs whose top sits within 1.8·size below it — each overlapping the bar by half their width, at least one of them math or a short token — collapses into one synthetic run carrying `\frac{num}{den}`, positioned on the bar. The bar is removed from the rules so it cannot form a table frame. A lone `×` or `±` in a text font is not math: text-font runs need two math symbols or a 25% symbol density. Radicands with an argument bar, matrices and `\begin{aligned}` layouts are not reconstructed.
+
+### Cross-page paragraphs
+
+Pages are joined by `joinPages`: when a page's markdown ends in a letter, digit, comma, semicolon or dash (not a table row) and the next page starts lowercase, the break was mid-paragraph and the pages are joined with a space.
 
 ## 11. Icons that OCR into characters (`ocr.ts`)
 
 Tesseract will happily read a star as `77` or an info icon as `©`, at high confidence. A short token (≤ 3 characters, not a word) is compared with the glyphs on its own line using one `getImageData` of the crop: it is dropped when its ink density exceeds max(0.38, 1.7× the line's median word density) — solid shapes versus strokes — or when more than 35% of its non-white pixels are coloured (channel spread > 50), since text is unsaturated and icons rarely are. A thin grey outline icon passes both tests; that is the remaining gap.
+
+The same per-word density gives **bold from OCR**, which tesseract's LSTM does not report: a word of ≥ 3 letters on a line with ≥ 3 words whose density exceeds 1.45× the line's median is marked bold. A line that is entirely bold has no reference and stays regular.
+
+OCR also drops bullet glyphs readily, so in the structure pass a line at a list item's text indent continues the item only when the previous line was ≥ 60% of the leaf's width; after a short line it starts a new item.
 
 ## 12. Runtimes (`env.ts`, `index.ts`, `node.ts`)
 
@@ -140,4 +160,4 @@ The engine never imports pdf.js or a canvas directly; the entry point installs a
 
 ## 14. Known gaps
 
-Fractions and multi-line math, math in text fonts, spanning table cells, outline icons, no bold/italic from OCR. See the README.
+Radicands, matrices and aligned equation blocks; spanning table cells; outline icons; italic from OCR. See the README.

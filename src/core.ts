@@ -11,7 +11,7 @@
  */
 import { runPipeline } from './engine/pipeline';
 import { OcrPool } from './engine/ocr';
-import { blocksToMarkdown } from './engine/markdown';
+import { blocksToMarkdown, joinPages } from './engine/markdown';
 import { setPdfWorkerSrc } from './engine/pdf';
 import type { Block, PageState, PipelineEvent, Stats } from './engine/types';
 
@@ -27,7 +27,7 @@ export type {
   TraceKind,
 } from './engine/types';
 export { OcrPool, type OcrPoolOptions } from './engine/ocr';
-export { blocksToMarkdown } from './engine/markdown';
+export { blocksToMarkdown, joinPages } from './engine/markdown';
 export { runPipeline, type PipelineOptions } from './engine/pipeline';
 export { setPdfWorkerSrc } from './engine/pdf';
 export { buildLines, orderRuns } from './engine/layout';
@@ -116,10 +116,7 @@ export async function decompile(
   );
   const ordered = [...pages.values()].sort((a, b) => a.page - b.page);
   return {
-    markdown: ordered
-      .map((p) => p.markdown)
-      .filter(Boolean)
-      .join('\n\n'),
+    markdown: joinPages(ordered.map((p) => p.markdown)),
     pages: ordered,
     stats: stats!,
   };

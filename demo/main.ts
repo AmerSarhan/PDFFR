@@ -1,6 +1,14 @@
 import './style.css';
 import * as pdfjs from 'pdfjs-dist';
-import { setPdfWorkerSrc, runPipeline, OcrPool, blocksToMarkdown, buildLines, orderRuns } from '../src/index';
+import {
+  setPdfWorkerSrc,
+  runPipeline,
+  OcrPool,
+  blocksToMarkdown,
+  joinPages,
+  buildLines,
+  orderRuns,
+} from '../src/index';
 import type { Block, PageState, PipelineEvent, Stats } from '../src/engine/types';
 
 setPdfWorkerSrc(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href);
@@ -66,7 +74,7 @@ function fullMarkdown(): string {
     const b = pageBlocks.get(p);
     if (b && b.length) parts.push(blocksToMarkdown(b));
   }
-  return parts.join('\n\n');
+  return joinPages(parts);
 }
 
 /* ---------- output: rendered document ---------- */
@@ -366,7 +374,7 @@ fileInput.onchange = () => {
 document.querySelectorAll<HTMLButtonElement>('.samples .lnk').forEach((b) => {
   b.onclick = async () => {
     const src = b.dataset.src!;
-    const res = await fetch(src);
+    const res = await fetch(import.meta.env.BASE_URL + src);
     run(await res.arrayBuffer(), src.split('/').pop()!);
   };
 });
@@ -396,7 +404,7 @@ window.addEventListener('drop', (e) => {
 
 /* open in a working state */
 paint();
-fetch('/samples/report.pdf')
+fetch(import.meta.env.BASE_URL + 'samples/report.pdf')
   .then((r) => r.arrayBuffer())
   .then((b) => run(b, 'report.pdf'))
   .catch(() => {});
@@ -404,7 +412,7 @@ fetch('/samples/report.pdf')
 // console / automation hook: window.pdffr.load('/samples/mixed.pdf')
 (window as any).pdffr = {
   load: async (url: string) => {
-    const r = await fetch(url);
+    const r = await fetch(url.startsWith('/') ? url : import.meta.env.BASE_URL + url);
     await run(await r.arrayBuffer(), url.split('/').pop()!);
     return fullMarkdown();
   },

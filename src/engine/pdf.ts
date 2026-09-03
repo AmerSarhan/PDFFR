@@ -37,7 +37,26 @@ export interface NativeExtract {
 
 const MATH_FONT = /symbol|cmmi|cmsy|cmex|cmr\d|math|mtextra|euclid|stix|xits|asana|mathjax|mathpi/i;
 const MATH_CHARS = /[∑∏∫√∞≤≥≠≈≡±×÷∂∇∈∉⊂⊆⊃⊇∪∩→←⇒⇔∀∃∝∅⋅αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ]/;
+const MATH_CHARS_G = new RegExp(MATH_CHARS.source, 'g');
 const BULLET_ONLY = /^[•‣◦▪▫■□●○·]+$/;
+
+/**
+ * Tracked (letter-spaced) text arrives as "B U S I N E S S": every token a single glyph, spaces
+ * between them. Collapse it; the separate space items between words still produce word breaks.
+ */
+function untrack(s: string): string {
+  const t = s.trim();
+  const tokens = t.split(' ');
+  if (tokens.length < 3) return s;
+  let pairs = 0;
+  for (const k of tokens) {
+    if (k.length === 2) pairs++;
+    else if (k.length !== 1) return s;
+  }
+  if (pairs > 1) return s;
+  if (!/^[\p{L}\p{N}\s]+$/u.test(t)) return s;
+  return s.replace(t, tokens.join(''));
+}
 
 interface FontMeta {
   bold: boolean;
@@ -119,9 +138,13 @@ export async function extractNative(page: PDFPageProxy): Promise<NativeExtract> 
     const bx = Math.min(...xs);
     const by = Math.min(...ys);
     const fm = meta(item.fontName);
-    const math = (MATH_FONT.test(fm.name) && !BULLET_ONLY.test(item.str.trim())) || MATH_CHARS.test(item.str);
+    const math =
+      (MATH_FONT.test(fm.name) && !BULLET_ONLY.test(item.str.trim())) ||
+      (item.str.match(MATH_CHARS_G) || []).length >= 2 ||
+      (item.str.trim().length >= 2 &&
+        (item.str.match(MATH_CHARS_G) || []).length / item.str.trim().length >= 0.25);
     runs.push({
-      text: item.str,
+      text: untrack(item.str),
       x: bx,
       y: by,
       w: Math.max(...xs) - bx,

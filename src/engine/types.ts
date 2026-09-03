@@ -14,6 +14,8 @@ export interface Run {
   font?: string;
   /** set in a math font, or carrying math symbols */
   math?: boolean;
+  /** pre-composed LaTeX for a synthetic run (a folded fraction) */
+  tex?: string;
   /** glyph rotation on the page: 0, 90, 180 or 270 degrees */
   rot?: number;
   /** 0–100; native text is 100 */
@@ -56,7 +58,7 @@ export interface Rules {
 
 /** A leaf of the reading-order tree: either a run of lines or an atomic table. */
 export type Leaf =
-  | { kind: 'lines'; lines: Line[]; x0: number; x1: number; y0: number; y1: number }
+  | { kind: 'lines'; lines: Line[]; x0: number; x1: number; y0: number; y1: number; label?: boolean }
   | { kind: 'table'; table: Table; x0: number; x1: number; y0: number; y1: number };
 
 export interface ListItem {

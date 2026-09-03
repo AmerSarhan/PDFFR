@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-09-03
+
+- Letter-spaced (tracked) headings join correctly instead of one word per glyph.
+- Gutter cuts now recognise three geometric signatures — prose columns, label columns (labels become headings over their paragraphs) and card lanes (lines that do not share baselines) — and never cut a table.
+- Fractions drawn with a bar fold into `\\frac{}{}`; consecutive display equations merge into one block; an italic letter carrying a script is math even in a text font; a lone `×` in a text font is not.
+- Paragraphs cut by a page break are stitched back together (`joinPages`).
+- Bold is recovered from OCR stroke weight; a list item after a short line is a new item even when OCR lost its bullet.
+- Bare punctuation never carries inline markup.
+- Live demo on GitHub Pages; README hero; Node entry and CLI verified from the registry.
+
 ## 0.1.0 — 2026-09-03
 
 Initial release.

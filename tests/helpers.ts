@@ -21,3 +21,17 @@ export function run(text: string, x: number, y: number, size = 11, extra: Partia
 export function column(lines: string[], x: number, yTop: number, size = 11, leading = 15): Run[] {
   return lines.map((t, i) => run(t, x, yTop + i * leading, size));
 }
+
+/** Like `column`, but each line is laid out as separate word runs the way pdf.js delivers real prose. */
+export function wordsColumn(lines: string[], x: number, yTop: number, size = 11, leading = 15): Run[] {
+  const out: Run[] = [];
+  lines.forEach((line, i) => {
+    let cx = x;
+    for (const w of line.split(' ')) {
+      const r = run(w, cx, yTop + i * leading, size);
+      out.push(r);
+      cx += r.w + size * 0.25;
+    }
+  });
+  return out;
+}

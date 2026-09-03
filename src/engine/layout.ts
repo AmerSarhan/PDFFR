@@ -88,6 +88,7 @@ const BIG_OP: Record<string, string> = { Σ: '\\sum', Π: '\\prod' };
 const MATH_TOKEN = /^[A-Za-z0-9=+\-−±×÷<>()[\]|.,]{1,3}$/;
 
 function toTex(r: Run, lineSize: number): string {
+  if (r.tex) return r.tex;
   const t = r.text.trim();
   if (BIG_OP[t] && r.size > lineSize * 1.08) return BIG_OP[t];
   let out = '';
@@ -95,9 +96,60 @@ function toTex(r: Run, lineSize: number): string {
     const m = TEX[ch];
     if (m) out += m + ' ';
     else if ('%#&{}'.includes(ch)) out += '\\' + ch;
-    else if (ch !== ' ') out += ch;
+    else out += ch;
   }
-  return out.trim();
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Fractions: a short horizontal rule with math above and below it (overlapping its span)
+ * becomes one synthetic run carrying `\frac{…}{…}`. Returns the runs with the folded parts
+ * replaced and the rules with the consumed bars removed.
+ */
+export function foldFractions(runs: Run[], rules?: Rules): { runs: Run[]; rules?: Rules } {
+  if (!rules || !rules.h.length || !runs.some((r) => r.math)) return { runs, rules };
+  const used = new Set<Run>();
+  const usedBars = new Set<Rules['h'][number]>();
+  const out: Run[] = [];
+  for (const bar of rules.h) {
+    const w = bar.x1 - bar.x0;
+    if (w > 220) continue;
+    const overlaps = (r: Run) => Math.min(r.x + r.w, bar.x1 + 2) - Math.max(r.x, bar.x0 - 2) > r.w * 0.5;
+    const near = runs.filter((r) => !used.has(r) && overlaps(r));
+    if (!near.length) continue;
+    const size = median(near.map((r) => r.size)) || 10;
+    if (w < size * 0.8) continue;
+    const above = near.filter((r) => r.y + r.h <= bar.y + 1.5 && r.y + r.h >= bar.y - size * 1.8);
+    const below = near.filter((r) => r.y >= bar.y - 1.5 && r.y <= bar.y + size * 1.8);
+    if (!above.length || !below.length) continue;
+    if (![...above, ...below].some((r) => r.math || /^[\p{N}\p{L}]{1,3}$/u.test(r.text.trim()))) continue;
+    const tex = (g: Run[]) =>
+      joinRuns(
+        g.map((r) => ({ ...r, math: true })),
+        size,
+      ).rich.replace(/^\$|\$$/g, '');
+    const num = tex(above);
+    const den = tex(below);
+    for (const r of [...above, ...below]) used.add(r);
+    usedBars.add(bar);
+    const base = above[0];
+    out.push({
+      ...base,
+      text: `${above.map((r) => r.text.trim()).join('')}/${below.map((r) => r.text.trim()).join('')}`,
+      tex: `\\frac{${num}}{${den}}`,
+      x: bar.x0,
+      y: bar.y - size * 0.6,
+      w,
+      h: size * 1.2,
+      size,
+      math: true,
+    });
+  }
+  if (!used.size) return { runs, rules };
+  return {
+    runs: [...runs.filter((r) => !used.has(r)), ...out],
+    rules: { h: rules.h.filter((b) => !usedBars.has(b)), v: rules.v },
+  };
 }
 
 /* ---------- runs → lines ---------- */
@@ -181,8 +233,23 @@ export function joinRuns(runs: Run[], lineSize: number): { text: string; rich: s
   const sub = rs.map((r, i) => small[i] && r.y + r.h / 2 > mid + lineSize * 0.12);
   const gapBefore = rs.map((r, i) => (i ? r.x - (rs[i - 1].x + rs[i - 1].w) : Infinity));
 
-  // math spans: math-font runs, extended over attached scripts and short tokens next to them
-  const inMath = rs.map((r) => !!r.math);
+  // letter-spaced (tracked) text: most runs are single glyphs with a uniform gap — join them
+  // without spaces, and only a gap clearly larger than the tracking is a word break
+  const singles = rs.filter((r) => r.text.trim().length === 1).length;
+  const innerGaps = gapBefore.slice(1).filter((g) => g >= 0 && g < lineSize);
+  const tracking = rs.length >= 4 && singles >= rs.length * 0.7 && innerGaps.length ? median(innerGaps) : 0;
+
+  // math spans: math-font runs (or an italic single letter carrying a script, math typed in a text
+  // font), extended over attached scripts and short tokens next to them
+  const inMath = rs.map(
+    (r, i) =>
+      !!r.math ||
+      (r.italic &&
+        /^[A-Za-z]$/.test(r.text.trim()) &&
+        i + 1 < rs.length &&
+        (sup[i + 1] || sub[i + 1]) &&
+        gapBefore[i + 1] < lineSize * 0.3),
+  );
   let grew = true;
   while (grew) {
     grew = false;
@@ -204,6 +271,7 @@ export function joinRuns(runs: Run[], lineSize: number): { text: string; rich: s
     const prev = rs[i - 1];
     const r = rs[i];
     const gap = gapBefore[i];
+    if (tracking > lineSize * 0.05) return gap > tracking * 1.8 + lineSize * 0.05 ? ' ' : '';
     if (gap > lineSize * 0.22 || /\s$/.test(prev.text) || /^\s/.test(r.text)) return ' ';
     if (gap > lineSize * 0.06 && !/[-(\[/]$/.test(prev.text) && !/^[.,;:)\]]/.test(r.text)) return ' ';
     return '';
@@ -273,6 +341,8 @@ export function joinRuns(runs: Run[], lineSize: number): { text: string; rich: s
     let body = s.text.slice(lead.length);
     if (!body) continue;
     if (s.latex) body = `$${s.latex}$`;
+    else if (!/[\p{L}\p{N}]/u.test(body))
+      body = esc(body); // bare punctuation never carries markup
     else {
       body = esc(body);
       if (s.sup) body = `<sup>${body}</sup>`;
@@ -555,30 +625,82 @@ function mergeIntervals(iv: [number, number][]): [number, number][] {
   return out;
 }
 
-/** Find a vertical whitespace gutter that separates two prose-like column sets. */
-function findGutter(runs: Run[], box: Box, size: number): number | null {
+type Gutter = { x: number; mode: 'columns' | 'label' };
+
+/**
+ * Find a vertical whitespace gutter worth cutting at. Three geometric signatures qualify:
+ * prose on both sides (text columns); a narrow side with a few short lines beside a prose side
+ * with at least 3× as many lines (a label column — its lines become headings over the prose);
+ * or lines that do NOT share baselines across the gap (card lanes). Rows that align across the
+ * gap are a table, and tables are never cut.
+ */
+function findGutter(runs: Run[], box: Box, size: number): Gutter | null {
   const regionW = box.x1 - box.x0;
   const wide = runs.filter((r) => r.w < regionW * 0.6);
-  if (wide.length < 8) return null;
+  if (wide.length < 6) return null;
   const merged = mergeIntervals(wide.map((r) => [r.x, r.x + r.w] as [number, number]));
-  let best: { x: number; w: number } | null = null;
+  let best: (Gutter & { w: number }) | null = null;
   for (let i = 1; i < merged.length; i++) {
     const gapW = merged[i][0] - merged[i - 1][1];
     if (gapW < Math.max(8, size * 1.0)) continue;
     const gx = (merged[i - 1][1] + merged[i][0]) / 2;
-    if (gx < box.x0 + regionW * 0.2 || gx > box.x1 - regionW * 0.2) continue;
-    const lLines = buildLines(wide.filter((r) => r.x + r.w <= gx));
-    const rLines = buildLines(wide.filter((r) => r.x >= gx));
-    if (lLines.length < 3 || rLines.length < 3) continue;
-    if (median(lLines.map((l) => l.text.length)) < 18 || median(rLines.map((l) => l.text.length)) < 18)
-      continue;
+    if (gx < box.x0 + regionW * 0.12 || gx > box.x1 - regionW * 0.2) continue;
+    // the gap comes from the narrow runs; the sides are judged on every run that does not cross it
+    const lLines = buildLines(runs.filter((r) => r.x + r.w <= gx));
+    const rLines = buildLines(runs.filter((r) => r.x >= gx));
+    if (!lLines.length || !rLines.length) continue;
+    const prose = (ls: Line[]) => ls.length >= 3 && median(ls.map((l) => l.text.length)) >= 18;
+    const proseL = prose(lLines);
+    const proseR = prose(rLines);
     const regionH = box.y1 - box.y0;
-    const hL = Math.max(...lLines.map((l) => l.y1)) - Math.min(...lLines.map((l) => l.y0));
-    const hR = Math.max(...rLines.map((l) => l.y1)) - Math.min(...rLines.map((l) => l.y0));
-    if (hL < regionH * 0.3 || hR < regionH * 0.3) continue;
-    if (!best || gapW > best.w) best = { x: gx, w: gapW };
+    const span = (ls: Line[]) => Math.max(...ls.map((l) => l.y1)) - Math.min(...ls.map((l) => l.y0));
+    const small = lLines.length <= rLines.length ? lLines : rLines;
+    const big = small === lLines ? rLines : lLines;
+    const aligned =
+      small.filter((a) => big.some((b) => Math.abs(a.y - b.y) < a.size * 0.35)).length / small.length;
+
+    let mode: Gutter['mode'] | null = null;
+    if (proseL && proseR && span(lLines) >= regionH * 0.3 && span(rLines) >= regionH * 0.3) mode = 'columns';
+    else if (!proseL && proseR && rLines.length >= lLines.length * 3 && span(rLines) >= regionH * 0.3)
+      mode = 'label';
+    else if (
+      aligned < 0.5 &&
+      lLines.length >= 3 &&
+      rLines.length >= 3 &&
+      span(lLines) >= regionH * 0.3 &&
+      span(rLines) >= regionH * 0.3
+    )
+      mode = 'columns';
+    if (!mode) continue;
+    if (!best || gapW > best.w) best = { x: gx, mode, w: gapW };
   }
-  return best ? best.x : null;
+  return best ? { x: best.x, mode: best.mode } : null;
+}
+
+/** Lines of a label column, grouped into one leaf per label (consecutive lines within 0.9·size). */
+function labelLeaves(runs: Run[]): Leaf[] {
+  const lines = buildLines(runs).sort((a, b) => a.y - b.y);
+  const leaves: Leaf[] = [];
+  let cur: Line[] = [];
+  const flush = () => {
+    if (!cur.length) return;
+    leaves.push({
+      kind: 'lines',
+      lines: cur,
+      label: true,
+      x0: Math.min(...cur.map((l) => l.x0)),
+      x1: Math.max(...cur.map((l) => l.x1)),
+      y0: cur[0].y0,
+      y1: cur[cur.length - 1].y1,
+    });
+    cur = [];
+  };
+  for (const l of lines) {
+    if (cur.length && l.y0 - cur[cur.length - 1].y1 > l.size * 0.9) flush();
+    cur.push(l);
+  }
+  flush();
+  return leaves;
 }
 
 function bbox(runs: Run[]): Box {
@@ -596,13 +718,15 @@ function bbox(runs: Run[]): Box {
  */
 export function orderRuns(runs: Run[], rules?: Rules, depth = 0): Leaf[] {
   if (!runs.length) return [];
+  if (depth === 0) ({ runs, rules } = foldFractions(runs, rules));
   const box = bbox(runs);
   const lines = buildLines(runs);
   const size = median(lines.map((l) => l.size)) || 10;
 
-  if (depth < 8 && lines.length >= 6) {
-    const gx = findGutter(runs, box, size);
-    if (gx !== null) {
+  if (depth < 8 && lines.length >= 5) {
+    const g = findGutter(runs, box, size);
+    if (g) {
+      const gx = g.x;
       const spanning = runs.filter((r) => r.x < gx && r.x + r.w > gx);
       const L = runs.filter((r) => r.x + r.w <= gx);
       const R = runs.filter((r) => r.x >= gx);
@@ -610,9 +734,11 @@ export function orderRuns(runs: Run[], rules?: Rules, depth = 0): Leaf[] {
         const colTop = Math.min(...[...L, ...R].map((r) => r.y));
         const above = spanning.filter((r) => r.y < colTop);
         const below = spanning.filter((r) => r.y >= colTop);
+        // label column: its lines head the prose beside them (the structure pass sorts by y)
+        const left = g.mode === 'label' ? labelLeaves(L) : orderRuns(L, rules, depth + 1);
         return [
           ...orderRuns(above, rules, depth + 1),
-          ...orderRuns(L, rules, depth + 1),
+          ...left,
           ...orderRuns(R, rules, depth + 1),
           ...orderRuns(below, rules, depth + 1),
         ];

@@ -79,9 +79,18 @@ export function toBlocks(
     else if (it.kind === 'group')
       blocks.push(...toBlocks(it.leaves, it.body, pageH, new Set(), false, it.headings));
     else if (it.kind === 'table') blocks.push({ type: 'table', rows: it.table.rows });
+    else if (it.label)
+      blocks.push({ type: 'heading', level: 3, text: it.lines.map((l) => l.text).join(' ') });
     else blocks.push(...linesToBlocks(it.lines, it.x1 - it.x0, { body, pageH, drop, multiPage, headings }));
   }
-  return blocks;
+  // consecutive display equations are one multi-line block
+  const merged: Block[] = [];
+  for (const b of blocks) {
+    const last = merged[merged.length - 1];
+    if (b.type === 'math' && last?.type === 'math') last.latex += ' \\\\\n' + b.latex;
+    else merged.push(b);
+  }
+  return merged;
 }
 
 const LONE_MARKER = /^([•‣◦▪▫■□●○·\-–—*§o]|[^\w\s])$/;
@@ -188,7 +197,15 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
       continue;
     }
     if (list && l.x0 > list.textX - l.size * 0.3 && gapBefore < l.size * 0.9) {
-      list.items[list.items.length - 1].text += ' ' + l.rich;
+      // a wrapped continuation follows a nearly full line; after a short line it is a new item whose
+      // marker was lost (OCR drops bullet glyphs readily)
+      const prevFull = prev && prev.x1 - prev.x0 >= leafW * 0.6;
+      if (prevFull) {
+        list.items[list.items.length - 1].text += ' ' + l.rich;
+        continue;
+      }
+      const lastItem = list.items[list.items.length - 1];
+      list.items.push({ text: l.rich, level: lastItem.level, ordered: lastItem.ordered });
       continue;
     }
     flushList();

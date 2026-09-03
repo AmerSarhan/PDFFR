@@ -6,6 +6,10 @@
 
 **A PDF decompiler, not an image reader.** PDF → Markdown in the browser or Node, in milliseconds for born-digital pages — with on-device OCR spent only on the pixels the text layer can't explain.
 
+**[Try it in your browser →](https://amersarhan.github.io/PDDFR/)** — drop any PDF; it never leaves the tab.
+
+[![pdffr decompiling a mixed native + scanned document: the page on the left with native text tinted and the OCR region outlined, the markdown beside it](docs/demo.png)](https://amersarhan.github.io/PDDFR/)
+
 ```ts
 import { decompile } from 'pdffr';
 
@@ -164,13 +168,15 @@ Early. It is accurate on the documents it was built against (reports, Word expor
 - Math set in math fonts (Symbol, Computer Modern, STIX, Cambria Math…): Greek, operators, sub/superscripts → inline `$…$` and display `$$…$$` LaTeX.
 - Browser, Node and CLI.
 
+Also: letter-spaced headings, label columns (`**KSA-UAE tension** — paragraph` layouts become headings over their paragraphs), card/lane layouts, fractions drawn with a bar, multi-line display math, paragraphs cut by a page break, bold recovered from OCR stroke weight.
+
 Known limitations:
 
-- Fractions, radicals with arguments, matrices and multi-line alignments are not reconstructed; each line becomes one expression.
-- Math typed in an ordinary text font (a bare `x2`) is not recognised as math.
+- Radicals with an argument bar, matrices and `aligned` blocks are not reconstructed.
+- Math typed in an ordinary upright text font (a bare `x2` with no italic or math font) is not recognised as math.
 - Tables whose cells span rows or columns are flattened.
 - Icons that are neither solid nor coloured (a thin grey outline) can still OCR into a character.
-- OCR output carries no bold/italic.
+- OCR output carries bold (from stroke weight) but no italic.
 
 Bug reports with a PDF attached are the fastest way to improve it.
 

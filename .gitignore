@@ -12,3 +12,5 @@ demo/public/samples/user.pdf
 python/langchain-pdffr/.venv/
 python/langchain-pdffr/dist/
 *.egg-info/
+.pytest_cache/
+__pycache__/

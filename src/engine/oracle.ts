@@ -45,11 +45,19 @@ export function findRegions(
   const pageArea = pageW * pageH;
   for (const r of imageRects) {
     if (r.w * r.h < pageArea * 0.0025) continue;
-    const x0 = toCell(r.x, gw - 1), x1 = toCell(r.x + r.w, gw - 1);
-    const y0 = toCell(r.y, gh - 1), y1 = toCell(r.y + r.h, gh - 1);
-    let inked = 0, cells = 0;
-    for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) { cells++; if (ink[gy * gw + gx] / cellMax > 0.02) inked++; }
-    const textInside = native.filter((t) => t.x >= r.x && t.x + t.w <= r.x + r.w && t.y >= r.y && t.y + t.h <= r.y + r.h)
+    const x0 = toCell(r.x, gw - 1),
+      x1 = toCell(r.x + r.w, gw - 1);
+    const y0 = toCell(r.y, gh - 1),
+      y1 = toCell(r.y + r.h, gh - 1);
+    let inked = 0,
+      cells = 0;
+    for (let gy = y0; gy <= y1; gy++)
+      for (let gx = x0; gx <= x1; gx++) {
+        cells++;
+        if (ink[gy * gw + gx] / cellMax > 0.02) inked++;
+      }
+    const textInside = native
+      .filter((t) => t.x >= r.x && t.x + t.w <= r.x + r.w && t.y >= r.y && t.y + t.h <= r.y + r.h)
       .reduce((a, t) => a + t.w * t.h, 0);
     for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) covered[gy * gw + gx] = 1;
     if (!cells || inked / cells < 0.005) continue; // blank/white image
@@ -61,12 +69,15 @@ export function findRegions(
   const textMask = new Uint8Array(gw * gh);
   for (const r of native) {
     const pad = r.h * 0.4;
-    const x0 = toCell(r.x - pad, gw - 1), x1 = toCell(r.x + r.w + pad, gw - 1);
-    const y0 = toCell(r.y - pad, gh - 1), y1 = toCell(r.y + r.h + pad, gh - 1);
+    const x0 = toCell(r.x - pad, gw - 1),
+      x1 = toCell(r.x + r.w + pad, gw - 1);
+    const y0 = toCell(r.y - pad, gh - 1),
+      y1 = toCell(r.y + r.h + pad, gh - 1);
     for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) textMask[gy * gw + gx] = 1;
   }
   const res = new Uint8Array(gw * gh);
-  for (let i = 0; i < res.length; i++) res[i] = !textMask[i] && !covered[i] && ink[i] / cellMax > 0.03 ? 1 : 0;
+  for (let i = 0; i < res.length; i++)
+    res[i] = !textMask[i] && !covered[i] && ink[i] / cellMax > 0.03 ? 1 : 0;
 
   const seen = new Uint8Array(gw * gh);
   const comps: { x0: number; y0: number; x1: number; y1: number; n: number }[] = [];
@@ -78,16 +89,24 @@ export function findRegions(
     const c = { x0: gw, y0: gh, x1: 0, y1: 0, n: 0 };
     while (stack.length) {
       const i = stack.pop()!;
-      const gx = i % gw, gy = (i / gw) | 0;
+      const gx = i % gw,
+        gy = (i / gw) | 0;
       c.n++;
-      if (gx < c.x0) c.x0 = gx; if (gx > c.x1) c.x1 = gx;
-      if (gy < c.y0) c.y0 = gy; if (gy > c.y1) c.y1 = gy;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const nx = gx + dx, ny = gy + dy;
-        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
-        const j = ny * gw + nx;
-        if (res[j] && !seen[j]) { seen[j] = 1; stack.push(j); }
-      }
+      if (gx < c.x0) c.x0 = gx;
+      if (gx > c.x1) c.x1 = gx;
+      if (gy < c.y0) c.y0 = gy;
+      if (gy > c.y1) c.y1 = gy;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = gx + dx,
+            ny = gy + dy;
+          if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+          const j = ny * gw + nx;
+          if (res[j] && !seen[j]) {
+            seen[j] = 1;
+            stack.push(j);
+          }
+        }
     }
     comps.push(c);
   }
@@ -96,18 +115,27 @@ export function findRegions(
   let merged = true;
   while (merged) {
     merged = false;
-    outer: for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
-      const a = boxes[i], b = boxes[j];
-      if (a.x0 <= b.x1 + 3 && b.x0 <= a.x1 + 3 && a.y0 <= b.y1 + 3 && b.y0 <= a.y1 + 3) {
-        boxes[i] = { x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1), n: a.n + b.n };
-        boxes.splice(j, 1);
-        merged = true;
-        break outer;
+    outer: for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i],
+          b = boxes[j];
+        if (a.x0 <= b.x1 + 3 && b.x0 <= a.x1 + 3 && a.y0 <= b.y1 + 3 && b.y0 <= a.y1 + 3) {
+          boxes[i] = {
+            x0: Math.min(a.x0, b.x0),
+            y0: Math.min(a.y0, b.y0),
+            x1: Math.max(a.x1, b.x1),
+            y1: Math.max(a.y1, b.y1),
+            n: a.n + b.n,
+          };
+          boxes.splice(j, 1);
+          merged = true;
+          break outer;
+        }
       }
-    }
   }
   for (const b of boxes) {
-    const wCells = b.x1 - b.x0 + 1, hCells = b.y1 - b.y0 + 1;
+    const wCells = b.x1 - b.x0 + 1,
+      hCells = b.y1 - b.y0 + 1;
     if (hCells <= 2 && wCells > 8) continue; // rules
     if (wCells <= 2 && hCells > 8) continue; // vertical rules / borders
     if (b.n < 6) continue; // specks

@@ -10,7 +10,11 @@ export function bodySize(lines: Line[]): number {
   }
   let best = 10;
   let bc = -1;
-  for (const [k, c] of freq) if (c > bc) { bc = c; best = k; }
+  for (const [k, c] of freq)
+    if (c > bc) {
+      bc = c;
+      best = k;
+    }
   return best || 10;
 }
 
@@ -59,12 +63,20 @@ interface Ctx {
 }
 
 /** Turn ordered layout items into markdown blocks. */
-export function toBlocks(items: LayoutItem[], body: number, pageH: number, drop: Set<string>, multiPage: boolean, headings = true): Block[] {
+export function toBlocks(
+  items: LayoutItem[],
+  body: number,
+  pageH: number,
+  drop: Set<string>,
+  multiPage: boolean,
+  headings = true,
+): Block[] {
   const blocks: Block[] = [];
   const sorted = [...items].sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   for (const it of sorted) {
     if (it.kind === 'pending') blocks.push({ type: 'pending', label: it.label });
-    else if (it.kind === 'group') blocks.push(...toBlocks(it.leaves, it.body, pageH, new Set(), false, it.headings));
+    else if (it.kind === 'group')
+      blocks.push(...toBlocks(it.leaves, it.body, pageH, new Set(), false, it.headings));
     else if (it.kind === 'table') blocks.push({ type: 'table', rows: it.table.rows });
     else blocks.push(...linesToBlocks(it.lines, it.x1 - it.x0, { body, pageH, drop, multiPage, headings }));
   }
@@ -75,7 +87,8 @@ const LONE_MARKER = /^([•‣◦▪▫■□●○·\-–—*§o]|[^\w\s])$/;
 
 function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
   const blocks: Block[] = [];
-  const lines = all.filter((l) => !isPageFurniture(l, ctx.pageH, ctx.drop, ctx.multiPage))
+  const lines = all
+    .filter((l) => !isPageFurniture(l, ctx.pageH, ctx.drop, ctx.multiPage))
     // a bullet glyph alone on its line marks an item whose content is a figure — nothing to say
     .filter((l) => !(l.runs.length === 1 && LONE_MARKER.test(l.text)));
   if (!lines.length) return blocks;
@@ -90,7 +103,8 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
   }
   const levelOf = (x: number) => {
     let best = 0;
-    for (let i = 1; i < levels.length; i++) if (Math.abs(levels[i] - x) < Math.abs(levels[best] - x)) best = i;
+    for (let i = 1; i < levels.length; i++)
+      if (Math.abs(levels[i] - x) < Math.abs(levels[best] - x)) best = i;
     return best;
   };
 
@@ -105,8 +119,18 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
 
   let para: string[] = [];
   let list: { items: ListItem[]; textX: number } | null = null;
-  const flushPara = () => { if (para.length) { blocks.push({ type: 'para', text: joinWrapped(para) }); para = []; } };
-  const flushList = () => { if (list) { blocks.push({ type: 'list', items: list.items }); list = null; } };
+  const flushPara = () => {
+    if (para.length) {
+      blocks.push({ type: 'para', text: joinWrapped(para) });
+      para = [];
+    }
+  };
+  const flushList = () => {
+    if (list) {
+      blocks.push({ type: 'list', items: list.items });
+      list = null;
+    }
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
@@ -126,11 +150,15 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
       else if (ratio >= 1.32 && short) level = 2;
       else if (ratio >= 1.12 && short && !endsSentence) level = 3;
       else if (
-        l.bold && short && !endsSentence && ratio >= 0.95 &&
+        l.bold &&
+        short &&
+        !endsSentence &&
+        ratio >= 0.95 &&
         (gapBefore > l.size * 0.35 || !prev) &&
         (gapAfter > l.size * 0.35 || !next || !next.bold) &&
-        (l.x1 - l.x0) < leafW * 0.85
-      ) level = 3;
+        l.x1 - l.x0 < leafW * 0.85
+      )
+        level = 3;
     }
     if (level) {
       flushPara();
@@ -155,12 +183,14 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
 
     // --- paragraph text ---
     para.push(l.rich);
-    const shortLine = (l.x1 - l.x0) < leafW * 0.72;
+    const shortLine = l.x1 - l.x0 < leafW * 0.72;
     const lead = next ? next.y - l.y : 0;
-    const bigGap = typicalLead > 0
-      ? lead > typicalLead * 1.3 + l.size * 0.1 || (next && next.size !== l.size && gapAfter > l.size * 0.5)
-      : gapAfter > l.size * 0.55;
-    const breakAfter = !next || bigGap || (shortLine && /[.!?]["')\]]?$/.test(l.text) && !/[a-z,]$/.test(l.text));
+    const bigGap =
+      typicalLead > 0
+        ? lead > typicalLead * 1.3 + l.size * 0.1 || (next && next.size !== l.size && gapAfter > l.size * 0.5)
+        : gapAfter > l.size * 0.55;
+    const breakAfter =
+      !next || bigGap || (shortLine && /[.!?]["')\]]?$/.test(l.text) && !/[a-z,]$/.test(l.text));
     if (breakAfter) flushPara();
   }
   flushPara();
@@ -175,7 +205,10 @@ function joinWrapped(lines: string[]): string {
   let out = '';
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (i === 0) { out = l; continue; }
+    if (i === 0) {
+      out = l;
+      continue;
+    }
     if (/[A-Za-z]-$/.test(out) && /^[a-z]/.test(l) && !KEEP_HYPHEN.test(out)) out = out.slice(0, -1) + l;
     else if (/[A-Za-z]-$/.test(out) && /^[a-z]/.test(l)) out += l;
     else out += ' ' + l;

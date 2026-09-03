@@ -77,30 +77,49 @@ app.innerHTML = `
 </div>`;
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const traceEl = $('trace'), srcEl = $('src'), rndEl = $('rendered'), drop = $('drop');
-const fileInput = $<HTMLInputElement>('file'), prog = $('prog'), progBar = $('progBar');
-const tracePill = $('tracePill'), ocrStatus = $('ocrStatus');
+const traceEl = $('trace'),
+  srcEl = $('src'),
+  rndEl = $('rendered'),
+  drop = $('drop');
+const fileInput = $<HTMLInputElement>('file'),
+  prog = $('prog'),
+  progBar = $('progBar');
+const tracePill = $('tracePill'),
+  ocrStatus = $('ocrStatus');
 
 /* ---------- theme ---------- */
 const root = document.documentElement;
-try { const t = localStorage.getItem('pdffr-theme'); if (t) root.setAttribute('data-theme', t); } catch { /* private mode */ }
+try {
+  const t = localStorage.getItem('pdffr-theme');
+  if (t) root.setAttribute('data-theme', t);
+} catch {
+  /* private mode */
+}
 $('theme').onclick = () => {
   const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   root.setAttribute('data-theme', next);
-  try { localStorage.setItem('pdffr-theme', next); } catch { /* ignore */ }
+  try {
+    localStorage.setItem('pdffr-theme', next);
+  } catch {
+    /* ignore */
+  }
 };
 
 /* ---------- OCR pool: warmed in the background so a scan never waits for model download ---------- */
 const pool = new OcrPool();
 $('wc').textContent = String(pool.size);
-pool.onStatus = (s) => { ocrStatus.textContent = s; };
+pool.onStatus = (s) => {
+  ocrStatus.textContent = s;
+};
 let escalate = true;
 $('escBtn').onclick = () => {
   escalate = !escalate;
   $('escBtn').classList.toggle('on', escalate);
   $('escBtn').textContent = (escalate ? '◉' : '○') + ' OCR escalation';
 };
-(window as any).requestIdleCallback ? (window as any).requestIdleCallback(() => pool.warm()) : setTimeout(() => pool.warm(), 800);
+(window as any).requestIdleCallback
+  ? (window as any).requestIdleCallback(() => pool.warm())
+  : setTimeout(() => pool.warm(), 800);
 
 /* ---------- output state ---------- */
 const pageBlocks = new Map<number, Block[]>();
@@ -116,7 +135,9 @@ function fullMarkdown(): string {
   }
   return parts.join('\n\n');
 }
-function esc(s: string) { return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!)); }
+function esc(s: string) {
+  return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+}
 
 function paintSource() {
   let html = '';
@@ -124,14 +145,18 @@ function paintSource() {
     const b = pageBlocks.get(p);
     if (!b) continue;
     html += `<span class="pg">page ${p}</span>`;
-    html += blocksToMarkdown(b).split('\n').map((l) => {
-      const e = esc(l);
-      if (/^#{1,6}\s/.test(l)) return `<span class="h">${e}</span>`;
-      if (/^\s*([-*]|\d+\.)\s/.test(l)) return `<span class="li">${e}</span>`;
-      if (/^\|.*\|/.test(l)) return `<span class="tb">${e}</span>`;
-      if (/^<!--/.test(l)) return `<span class="cm">${e}</span>`;
-      return e;
-    }).join('\n') + '\n';
+    html +=
+      blocksToMarkdown(b)
+        .split('\n')
+        .map((l) => {
+          const e = esc(l);
+          if (/^#{1,6}\s/.test(l)) return `<span class="h">${e}</span>`;
+          if (/^\s*([-*]|\d+\.)\s/.test(l)) return `<span class="li">${e}</span>`;
+          if (/^\|.*\|/.test(l)) return `<span class="tb">${e}</span>`;
+          if (/^<!--/.test(l)) return `<span class="cm">${e}</span>`;
+          return e;
+        })
+        .join('\n') + '\n';
   }
   srcEl.innerHTML = html || '<div class="empty">Markdown appears here as pages decompile.</div>';
 }
@@ -170,22 +195,57 @@ function paintRendered() {
       else if (b.type === 'para') html += `<p>${inline(b.text)}</p>`;
       else if (b.type === 'list') html += nestedList(b.items);
       else if (b.type === 'table') {
-        html += '<table>' + b.rows.map((r, i) => '<tr>' + r.map((c) => `<${i ? 'td' : 'th'}>${inline(c)}</${i ? 'td' : 'th'}>`).join('') + '</tr>').join('') + '</table>';
+        html +=
+          '<table>' +
+          b.rows
+            .map(
+              (r, i) =>
+                '<tr>' +
+                r.map((c) => `<${i ? 'td' : 'th'}>${inline(c)}</${i ? 'td' : 'th'}>`).join('') +
+                '</tr>',
+            )
+            .join('') +
+          '</table>';
       } else html += `<p class="pending">⏳ ${esc(b.label)}</p>`;
     }
   }
   rndEl.innerHTML = html || '<div class="empty">Markdown appears here as pages decompile.</div>';
 }
 let view: 'src' | 'render' = 'src';
-function paint() { if (view === 'src') paintSource(); else paintRendered(); }
+function paint() {
+  if (view === 'src') paintSource();
+  else paintRendered();
+}
 
-$('vSrc').onclick = () => { view = 'src'; $('vSrc').classList.add('on'); $('vRender').classList.remove('on'); srcEl.classList.remove('off'); rndEl.classList.remove('on'); paint(); };
-$('vRender').onclick = () => { view = 'render'; $('vRender').classList.add('on'); $('vSrc').classList.remove('on'); srcEl.classList.add('off'); rndEl.classList.add('on'); paint(); };
+$('vSrc').onclick = () => {
+  view = 'src';
+  $('vSrc').classList.add('on');
+  $('vRender').classList.remove('on');
+  srcEl.classList.remove('off');
+  rndEl.classList.remove('on');
+  paint();
+};
+$('vRender').onclick = () => {
+  view = 'render';
+  $('vRender').classList.add('on');
+  $('vSrc').classList.remove('on');
+  srcEl.classList.add('off');
+  rndEl.classList.add('on');
+  paint();
+};
 $('copy').onclick = async () => {
   const md = fullMarkdown();
-  try { await navigator.clipboard.writeText(md); } catch { /* no clipboard */ }
-  $('copy').classList.add('ok'); $('copyTxt').textContent = 'copied ✓';
-  setTimeout(() => { $('copy').classList.remove('ok'); $('copyTxt').textContent = 'copy'; }, 1500);
+  try {
+    await navigator.clipboard.writeText(md);
+  } catch {
+    /* no clipboard */
+  }
+  $('copy').classList.add('ok');
+  $('copyTxt').textContent = 'copied ✓';
+  setTimeout(() => {
+    $('copy').classList.remove('ok');
+    $('copyTxt').textContent = 'copy';
+  }, 1500);
 };
 $('dl').onclick = () => {
   const a = document.createElement('a');
@@ -203,7 +263,8 @@ function trace(kind: string, msg: string, t: number) {
   traceEl.appendChild(row);
   traceEl.scrollTop = traceEl.scrollHeight;
 }
-const ms = (v: number) => (v < 1000 ? `${Math.round(v)}<span class="u">ms</span>` : `${(v / 1000).toFixed(2)}<span class="u">s</span>`);
+const ms = (v: number) =>
+  v < 1000 ? `${Math.round(v)}<span class="u">ms</span>` : `${(v / 1000).toFixed(2)}<span class="u">s</span>`;
 function showStats(s: Stats) {
   $('s-pages').textContent = String(s.pages);
   $('s-first').innerHTML = s.firstOutputMs ? ms(s.firstOutputMs) : '–';
@@ -229,8 +290,11 @@ async function run(buf: ArrayBuffer, name: string) {
   nPages = 0;
   traceEl.innerHTML = '';
   paint();
-  tracePill.textContent = 'decompiling'; tracePill.className = 'pill live';
-  drop.classList.add('busy'); prog.classList.add('on'); progBar.style.width = '3%';
+  tracePill.textContent = 'decompiling';
+  tracePill.className = 'pill live';
+  drop.classList.add('busy');
+  prog.classList.add('on');
+  progBar.style.width = '3%';
   $('dropT1').textContent = `Decompiling ${name} …`;
   let pagesSeen = 0;
   const onEvent = (e: PipelineEvent) => {
@@ -241,15 +305,22 @@ async function run(buf: ArrayBuffer, name: string) {
       debugStates.set(e.page, e.state);
       progBar.style.width = `${Math.round((pagesSeen / Math.max(1, nPages)) * 100)}%`;
       paint();
-    } else if (e.type === 'stats') { nPages = e.stats.pages; showStats(e.stats); }
-    else if (e.type === 'done') { showStats(e.stats); tracePill.textContent = 'complete'; tracePill.className = 'pill ok'; }
+    } else if (e.type === 'stats') {
+      nPages = e.stats.pages;
+      showStats(e.stats);
+    } else if (e.type === 'done') {
+      showStats(e.stats);
+      tracePill.textContent = 'complete';
+      tracePill.className = 'pill ok';
+    }
   };
   try {
     await runPipeline(buf, onEvent, { ocr: pool, escalate, concurrency: 4 });
     $('dropT1').textContent = `Done — ${name}. Drop another PDF to decompile.`;
   } catch (err: any) {
     trace('warn', `failed: ${String(err?.message || err)}`, 0);
-    tracePill.textContent = 'error'; tracePill.className = 'pill';
+    tracePill.textContent = 'error';
+    tracePill.className = 'pill';
     $('dropT1').textContent = 'Something went wrong — try another PDF';
   } finally {
     running = false;
@@ -258,15 +329,40 @@ async function run(buf: ArrayBuffer, name: string) {
   }
 }
 async function handleFile(file: File) {
-  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { trace('warn', 'not a PDF — drop a .pdf file', 0); return; }
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
+    trace('warn', 'not a PDF — drop a .pdf file', 0);
+    return;
+  }
   run(await file.arrayBuffer(), file.name);
 }
 drop.onclick = () => fileInput.click();
-drop.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } };
-fileInput.onchange = () => { const f = fileInput.files?.[0]; if (f) handleFile(f); fileInput.value = ''; };
-['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('hot'); }));
-['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('hot'); }));
-drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) handleFile(f); });
+drop.onkeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    fileInput.click();
+  }
+};
+fileInput.onchange = () => {
+  const f = fileInput.files?.[0];
+  if (f) handleFile(f);
+  fileInput.value = '';
+};
+['dragover', 'dragenter'].forEach((ev) =>
+  drop.addEventListener(ev, (e) => {
+    e.preventDefault();
+    drop.classList.add('hot');
+  }),
+);
+['dragleave', 'drop'].forEach((ev) =>
+  drop.addEventListener(ev, (e) => {
+    e.preventDefault();
+    drop.classList.remove('hot');
+  }),
+);
+drop.addEventListener('drop', (e) => {
+  const f = (e as DragEvent).dataTransfer?.files?.[0];
+  if (f) handleFile(f);
+});
 document.querySelectorAll<HTMLButtonElement>('.sample').forEach((b) => {
   b.onclick = async () => {
     const src = b.dataset.src!;
@@ -278,7 +374,11 @@ paint();
 
 // allow driving from the console / automation: window.pdffr.load('/samples/report.pdf')
 (window as any).pdffr = {
-  load: async (url: string) => { const r = await fetch(url); await run(await r.arrayBuffer(), url.split('/').pop()!); return fullMarkdown(); },
+  load: async (url: string) => {
+    const r = await fetch(url);
+    await run(await r.arrayBuffer(), url.split('/').pop()!);
+    return fullMarkdown();
+  },
   markdown: fullMarkdown,
   states: debugStates,
   engine: { buildLines, orderRuns },

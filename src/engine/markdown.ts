@@ -40,7 +40,13 @@ export function blocksToMarkdown(blocks: Block[]): string {
           while (a.length < cols) a.push('');
           return '| ' + a.join(' | ') + ' |';
         };
-        out.push([norm(b.rows[0]), '| ' + Array(cols).fill('---').join(' | ') + ' |', ...b.rows.slice(1).map(norm)].join('\n'));
+        out.push(
+          [
+            norm(b.rows[0]),
+            '| ' + Array(cols).fill('---').join(' | ') + ' |',
+            ...b.rows.slice(1).map(norm),
+          ].join('\n'),
+        );
         break;
       }
       case 'pending':

@@ -24,17 +24,23 @@
     "build:lib": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json",
     "build:demo": "vite build",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm run build:lib"
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build:lib"
   },
   "peerDependencies": {
     "pdfjs-dist": ">=4.0.0",
     "tesseract.js": ">=6.0.0"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "pdfjs-dist": "^6.3.289",
+    "prettier": "^3.9.6",
     "tesseract.js": "^7.0.0",
     "typescript": "^5.9.0",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "pdf",
@@ -54,10 +60,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AmerSarhan/pdffr.git"
+    "url": "git+https://github.com/AmerSarhan/PDDFR.git"
   },
-  "homepage": "https://github.com/AmerSarhan/pdffr#readme",
+  "homepage": "https://github.com/AmerSarhan/PDDFR#readme",
   "bugs": {
-    "url": "https://github.com/AmerSarhan/pdffr/issues"
+    "url": "https://github.com/AmerSarhan/PDDFR/issues"
   }
 }

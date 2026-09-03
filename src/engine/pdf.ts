@@ -54,12 +54,19 @@ export async function pageImages(page: PDFPageProxy): Promise<{ count: number; r
   const vp = page.getViewport({ scale: 1 });
   // m1 × m2 in PDF row-vector convention (same as canvas ctx.transform)
   const mul = (m1: number[], m2: number[]): number[] => [
-    m1[0] * m2[0] + m1[2] * m2[1], m1[1] * m2[0] + m1[3] * m2[1],
-    m1[0] * m2[2] + m1[2] * m2[3], m1[1] * m2[2] + m1[3] * m2[3],
-    m1[0] * m2[4] + m1[2] * m2[5] + m1[4], m1[1] * m2[4] + m1[3] * m2[5] + m1[5],
+    m1[0] * m2[0] + m1[2] * m2[1],
+    m1[1] * m2[0] + m1[3] * m2[1],
+    m1[0] * m2[2] + m1[2] * m2[3],
+    m1[1] * m2[2] + m1[3] * m2[3],
+    m1[0] * m2[4] + m1[2] * m2[5] + m1[4],
+    m1[1] * m2[4] + m1[3] * m2[5] + m1[5],
   ];
-  const apply = (x: number, y: number, m: number[]) => [x * m[0] + y * m[2] + m[4], x * m[1] + y * m[3] + m[5]];
-  const isMatrix = (a: unknown): a is number[] => Array.isArray(a) && a.length >= 6 && a.every((v) => typeof v === 'number');
+  const apply = (x: number, y: number, m: number[]) => [
+    x * m[0] + y * m[2] + m[4],
+    x * m[1] + y * m[3] + m[5],
+  ];
+  const isMatrix = (a: unknown): a is number[] =>
+    Array.isArray(a) && a.length >= 6 && a.every((v) => typeof v === 'number');
   let ctm: number[] = Array.from(vp.transform as number[]);
   const stack: number[][] = [];
   const rects: Region[] = [];
@@ -77,8 +84,9 @@ export async function pageImages(page: PDFPageProxy): Promise<{ count: number; r
     const args: any = ops.argsArray[i];
     if (fn === OPS.save) stack.push(ctm.slice());
     else if (fn === OPS.restore) ctm = stack.pop() || ctm;
-    else if (fn === OPS.transform) { if (isMatrix(args)) ctm = mul(ctm, args); }
-    else if (fn === OPS.paintFormXObjectBegin) {
+    else if (fn === OPS.transform) {
+      if (isMatrix(args)) ctm = mul(ctm, args);
+    } else if (fn === OPS.paintFormXObjectBegin) {
       stack.push(ctm.slice());
       if (args && isMatrix(args[0])) ctm = mul(ctm, args[0]);
     } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() || ctm;
@@ -92,7 +100,11 @@ export async function pageImages(page: PDFPageProxy): Promise<{ count: number; r
   return { count, rects };
 }
 
-interface FontMeta { bold: boolean; italic: boolean; name: string }
+interface FontMeta {
+  bold: boolean;
+  italic: boolean;
+  name: string;
+}
 
 /** Lower the page's native text layer to positioned runs. Zero rasterization. */
 export async function extractNative(page: PDFPageProxy): Promise<NativeExtract> {
@@ -134,7 +146,7 @@ export async function extractNative(page: PDFPageProxy): Promise<NativeExtract> 
     const [a, b, c, d, e, f] = item.transform as number[];
     // rotated / vertical text: skip (sidebars, watermarks) rather than corrupt reading order
     const angle = Math.atan2(b, a);
-    if (Math.abs(angle) > 0.08 || Math.abs(Math.atan2(c, d)) > 0.08 && Math.abs(angle) > 0.08) {
+    if (Math.abs(angle) > 0.08 || (Math.abs(Math.atan2(c, d)) > 0.08 && Math.abs(angle) > 0.08)) {
       rotatedSkipped++;
       continue;
     }

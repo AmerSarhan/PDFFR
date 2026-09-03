@@ -12,7 +12,16 @@ import { blocksToMarkdown } from './engine/markdown';
 import { setPdfWorkerSrc } from './engine/pdf';
 import type { Block, PageState, PipelineEvent, Stats } from './engine/types';
 
-export type { Block, ListItem, PageState, PipelineEvent, Region, Run, Stats, TraceKind } from './engine/types';
+export type {
+  Block,
+  ListItem,
+  PageState,
+  PipelineEvent,
+  Region,
+  Run,
+  Stats,
+  TraceKind,
+} from './engine/types';
 export { OcrPool } from './engine/ocr';
 export { blocksToMarkdown } from './engine/markdown';
 export { runPipeline } from './engine/pipeline';
@@ -61,12 +70,16 @@ export function warmOcr(): Promise<void> {
 
 async function toBuffer(input: ArrayBuffer | Uint8Array | Blob): Promise<ArrayBuffer> {
   if (input instanceof ArrayBuffer) return input;
-  if (input instanceof Uint8Array) return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
+  if (input instanceof Uint8Array)
+    return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
   return input.arrayBuffer();
 }
 
 /** Decompile a PDF to markdown. Resolves when every page — including OCR'd regions — is final. */
-export async function decompile(input: ArrayBuffer | Uint8Array | Blob, opts: DecompileOptions = {}): Promise<DecompileResult> {
+export async function decompile(
+  input: ArrayBuffer | Uint8Array | Blob,
+  opts: DecompileOptions = {},
+): Promise<DecompileResult> {
   if (opts.pdfWorkerSrc) setPdfWorkerSrc(opts.pdfWorkerSrc);
   const data = await toBuffer(input);
   const pages = new Map<number, DecompiledPage>();
@@ -85,7 +98,10 @@ export async function decompile(input: ArrayBuffer | Uint8Array | Blob, opts: De
   );
   const ordered = [...pages.values()].sort((a, b) => a.page - b.page);
   return {
-    markdown: ordered.map((p) => p.markdown).filter(Boolean).join('\n\n'),
+    markdown: ordered
+      .map((p) => p.markdown)
+      .filter(Boolean)
+      .join('\n\n'),
     pages: ordered,
     stats: stats!,
   };

@@ -1,9 +1,10 @@
 node_modules/
 dist/
 dist-demo/
+coverage/
 .DS_Store
 *.log
 .vercel/
+.claude/
 # private test documents
 demo/public/samples/user.pdf
-public/samples/user.pdf

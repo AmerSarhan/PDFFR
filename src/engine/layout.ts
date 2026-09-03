@@ -16,9 +16,11 @@ function esc(s: string): string {
 /** Group runs sharing a baseline band into lines, sorted top-to-bottom. */
 export function buildLines(runs: Run[]): Line[] {
   const rs = runs.filter((r) => r.text.trim()).sort((a, b) => a.y + a.h / 2 - (b.y + b.h / 2) || a.x - b.x);
-  const lines: { runs: Run[]; yc: number; h: number }[] = [];
+  // yc is char-weighted so a superscript never drags a line's centre; y0/y1 is the union box
+  const lines: { runs: Run[]; yc: number; h: number; y0: number; y1: number; wt: number }[] = [];
   for (const r of rs) {
     const yc = r.y + r.h / 2;
+    const wt = Math.max(1, r.text.trim().length) * r.h;
     let best: (typeof lines)[number] | null = null;
     for (let i = lines.length - 1; i >= 0 && i >= lines.length - 6; i--) {
       const ln = lines[i];
@@ -26,20 +28,21 @@ export function buildLines(runs: Run[]): Line[] {
         best = ln;
         break;
       }
-      // a superscript/subscript is much smaller and merely overlaps the line's box
-      const lnTop = ln.yc - ln.h / 2;
-      const lnBot = ln.yc + ln.h / 2;
-      if (r.h < ln.h * 0.75 && r.y < lnBot && r.y + r.h > lnTop) {
+      // a superscript/subscript (either side much smaller) merely overlaps the other's box
+      const small = Math.min(r.h, ln.h) < Math.max(r.h, ln.h) * 0.75;
+      if (small && r.y < ln.y1 && r.y + r.h > ln.y0) {
         best = ln;
         break;
       }
     }
     if (best) {
       best.runs.push(r);
-      const n = best.runs.length;
-      best.yc = (best.yc * (n - 1) + yc) / n;
+      best.yc = (best.yc * best.wt + yc * wt) / (best.wt + wt);
+      best.wt += wt;
       best.h = Math.max(best.h, r.h);
-    } else lines.push({ runs: [r], yc, h: r.h });
+      best.y0 = Math.min(best.y0, r.y);
+      best.y1 = Math.max(best.y1, r.y + r.h);
+    } else lines.push({ runs: [r], yc, h: r.h, y0: r.y, y1: r.y + r.h, wt });
   }
   return lines.map((ln) => finishLine(ln.runs));
 }
@@ -56,7 +59,18 @@ function finishLine(runs: Run[]): Line {
   const boldChars = runs.filter((r) => r.bold).reduce((a, r) => a + r.text.trim().length, 0);
   const totalChars = runs.reduce((a, r) => a + r.text.trim().length, 0);
   const { text, rich } = joinRuns(runs, size);
-  return { runs, x0, x1, y0, y1, y: (y0 + y1) / 2, size, text, rich, bold: totalChars > 0 && boldChars / totalChars >= 0.8 };
+  return {
+    runs,
+    x0,
+    x1,
+    y0,
+    y1,
+    y: (y0 + y1) / 2,
+    size,
+    text,
+    rich,
+    bold: totalChars > 0 && boldChars / totalChars >= 0.8,
+  };
 }
 
 /** Join runs left→right, inserting spaces across gaps and emitting inline markdown for style changes. */
@@ -123,8 +137,10 @@ export function bulletOf(ln: Line): Bullet | null {
     const symbolFont = BULLET_FONT.test(r0.font || '');
     if (gap > ln.size * 0.35 || symbolFont) {
       const isGlyph = t0.length === 1 && (BULLET_CHARS.test(t0) || !/[A-Za-z0-9]/.test(t0) || symbolFont);
-      if (isGlyph) return { marker: t0, ordered: false, textX: r1.x, rich: joinRuns(ln.runs.slice(1), ln.size).rich };
-      if (ORDERED_MARKER.test(t0)) return { marker: t0, ordered: true, textX: r1.x, rich: joinRuns(ln.runs.slice(1), ln.size).rich };
+      if (isGlyph)
+        return { marker: t0, ordered: false, textX: r1.x, rich: joinRuns(ln.runs.slice(1), ln.size).rich };
+      if (ORDERED_MARKER.test(t0))
+        return { marker: t0, ordered: true, textX: r1.x, rich: joinRuns(ln.runs.slice(1), ln.size).rich };
     }
   }
   const m = ln.rich.match(GLUED_BULLET);
@@ -207,7 +223,8 @@ export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
         const row: string[] = Array(cols.length).fill('');
         for (const c of g.cells) {
           let best = 0;
-          for (let k = 1; k < cols.length; k++) if (Math.abs(cols[k] - c.x) < Math.abs(cols[best] - c.x)) best = k;
+          for (let k = 1; k < cols.length; k++)
+            if (Math.abs(cols[k] - c.x) < Math.abs(cols[best] - c.x)) best = k;
           row[best] = row[best] ? row[best] + ' ' + c.text : c.text;
         }
         return row;
@@ -228,7 +245,12 @@ export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
 
 /* ---------- reading order: XY-cut over whitespace ---------- */
 
-interface Box { x0: number; x1: number; y0: number; y1: number }
+interface Box {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
 
 function mergeIntervals(iv: [number, number][]): [number, number][] {
   iv.sort((a, b) => a[0] - b[0]);
@@ -256,7 +278,8 @@ function findGutter(runs: Run[], box: Box, size: number): number | null {
     const lLines = buildLines(wide.filter((r) => r.x + r.w <= gx));
     const rLines = buildLines(wide.filter((r) => r.x >= gx));
     if (lLines.length < 3 || rLines.length < 3) continue;
-    if (median(lLines.map((l) => l.text.length)) < 18 || median(rLines.map((l) => l.text.length)) < 18) continue;
+    if (median(lLines.map((l) => l.text.length)) < 18 || median(rLines.map((l) => l.text.length)) < 18)
+      continue;
     const regionH = box.y1 - box.y0;
     const hL = Math.max(...lLines.map((l) => l.y1)) - Math.min(...lLines.map((l) => l.y0));
     const hR = Math.max(...rLines.map((l) => l.y1)) - Math.min(...rLines.map((l) => l.y0));
@@ -295,7 +318,12 @@ export function orderRuns(runs: Run[], depth = 0): Leaf[] {
         const colTop = Math.min(...[...L, ...R].map((r) => r.y));
         const above = spanning.filter((r) => r.y < colTop);
         const below = spanning.filter((r) => r.y >= colTop);
-        return [...orderRuns(above, depth + 1), ...orderRuns(L, depth + 1), ...orderRuns(R, depth + 1), ...orderRuns(below, depth + 1)];
+        return [
+          ...orderRuns(above, depth + 1),
+          ...orderRuns(L, depth + 1),
+          ...orderRuns(R, depth + 1),
+          ...orderRuns(below, depth + 1),
+        ];
       }
     }
     const sorted = [...lines].sort((a, b) => a.y0 - b.y0);
@@ -318,7 +346,14 @@ export function orderRuns(runs: Run[], depth = 0): Leaf[] {
   }
 
   const { tables, rest } = detectTables(lines);
-  const leaves: Leaf[] = tables.map((t) => ({ kind: 'table', table: t, x0: t.x0, x1: t.x1, y0: t.y0, y1: t.y1 }));
+  const leaves: Leaf[] = tables.map((t) => ({
+    kind: 'table',
+    table: t,
+    x0: t.x0,
+    x1: t.x1,
+    y0: t.y0,
+    y1: t.y1,
+  }));
   const restSorted = rest.sort((a, b) => a.y - b.y);
   let cur: Line[] = [];
   const flush = () => {

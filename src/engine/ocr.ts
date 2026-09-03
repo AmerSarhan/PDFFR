@@ -35,7 +35,7 @@ export class OcrPool {
   private idle: Worker[] = [];
   private queue: Job<any>[] = [];
   private initPromise: Promise<void> | null = null;
-  size = Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 2) - 1));
+  size = Math.min(4, Math.max(1, (globalThis.navigator?.hardwareConcurrency || 2) - 1));
   ready = false;
   onStatus: (s: string) => void = () => {};
 
@@ -45,9 +45,12 @@ export class OcrPool {
       this.onStatus(`warming ${this.size} OCR worker${this.size > 1 ? 's' : ''}`);
       const t0 = performance.now();
       const ws = await Promise.all(
-        Array.from({ length: this.size }, () => createWorker('eng', OEM.LSTM_ONLY, { errorHandler: () => {} })),
+        Array.from({ length: this.size }, () =>
+          createWorker('eng', OEM.LSTM_ONLY, { errorHandler: () => {} }),
+        ),
       );
-      for (const w of ws) await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, preserve_interword_spaces: '1' });
+      for (const w of ws)
+        await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, preserve_interword_spaces: '1' });
       this.workers = ws;
       this.idle = [...ws];
       this.ready = true;
@@ -61,7 +64,13 @@ export class OcrPool {
     while (this.idle.length && this.queue.length) {
       const w = this.idle.pop()!;
       const job = this.queue.shift()!;
-      job.fn(w).then(job.resolve, job.reject).finally(() => { this.idle.push(w); this.pump(); });
+      job
+        .fn(w)
+        .then(job.resolve, job.reject)
+        .finally(() => {
+          this.idle.push(w);
+          this.pump();
+        });
     }
   }
 
@@ -77,7 +86,12 @@ export class OcrPool {
    * OCR one region of a page raster into runs in page units. Doubtful words get a second
    * read at 2×; then every word and line must look like text, or the region is rejected as graphics.
    */
-  recognizeRegion(raster: HTMLCanvasElement, scale: number, region: Region, wholePage: boolean): Promise<OcrResult> {
+  recognizeRegion(
+    raster: HTMLCanvasElement,
+    scale: number,
+    region: Region,
+    wholePage: boolean,
+  ): Promise<OcrResult> {
     // small crops (UI chrome, captions) are upsampled so glyphs reach a size the LSTM likes
     const px = region.h * scale;
     const up = px < 50 ? 3 : px < 90 ? 2 : 1;
@@ -104,11 +118,22 @@ export class OcrPool {
               if (!text || wd.confidence < 30) continue;
               words.push({
                 run: {
-                  text, x: region.x + wd.bbox.x0 / s, y: top,
-                  w: (wd.bbox.x1 - wd.bbox.x0) / s, h: lh / s, size, bold: false, italic: false,
-                  conf: wd.confidence, src: 'ocr',
+                  text,
+                  x: region.x + wd.bbox.x0 / s,
+                  y: top,
+                  w: (wd.bbox.x1 - wd.bbox.x0) / s,
+                  h: lh / s,
+                  size,
+                  bold: false,
+                  italic: false,
+                  conf: wd.confidence,
+                  src: 'ocr',
                 },
-                bx0: wd.bbox.x0, by0: wd.bbox.y0, bx1: wd.bbox.x1, by1: wd.bbox.y1, lineId,
+                bx0: wd.bbox.x0,
+                by0: wd.bbox.y0,
+                bx1: wd.bbox.x1,
+                by1: wd.bbox.y1,
+                lineId,
               });
             }
           }
@@ -128,13 +153,18 @@ export class OcrPool {
           const c = crop(img, d.bx0 - pad, d.by0 - pad, d.bx1 - d.bx0 + pad * 2, d.by1 - d.by0 + pad * 2, 2);
           try {
             const r2 = await w.recognize(c, {}, { blocks: true, text: false });
-            const word = (r2.data.blocks || []).flatMap((b) => b.paragraphs).flatMap((p) => p.lines).flatMap((l) => l.words)[0];
+            const word = (r2.data.blocks || [])
+              .flatMap((b) => b.paragraphs)
+              .flatMap((p) => p.lines)
+              .flatMap((l) => l.words)[0];
             if (word && word.confidence > d.run.conf + 4 && word.text.trim()) {
               d.run.text = word.text.trim();
               d.run.conf = word.confidence;
               reOcr++;
             }
-          } catch { /* keep first reading */ }
+          } catch {
+            /* keep first reading */
+          }
         }
       }
 
@@ -150,7 +180,8 @@ export class OcrPool {
       const meanConf = confN ? runs.reduce((a, r) => a + r.conf, 0) / confN : 0;
       // reject only when nothing substantial survived — a chart's title still counts even if its cells don't
       const rejected = !runs.length || letters < 6 || meanConf < 60;
-      img.width = 0; img.height = 0; // free the crop
+      img.width = 0;
+      img.height = 0; // free the crop
       return { region, runs: rejected ? [] : runs, meanConf, reOcr, rejected };
     });
   }

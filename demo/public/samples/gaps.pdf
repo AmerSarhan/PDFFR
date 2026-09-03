@@ -1,0 +1,105 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Symbol >>
+endobj
+4 0 obj
+<< /Length 842 >>
+stream
+BT /F2 16 Tf 72 720 Td (Ruled Table) Tj ET
+BT /F1 11 Tf 72 695 Td (The table below is drawn with ruling lines; its cells do not share aligned starts.) Tj ET
+0.6 w 0 0 0 RG
+72 660 m 540 660 l S
+72 636 m 540 636 l S
+72 600 m 540 600 l S
+72 576 m 540 576 l S
+72 660 m 72 576 l S
+200 660 m 200 576 l S
+330 660 m 330 576 l S
+540 660 m 540 576 l S
+BT /F2 10 Tf 78 646 Td (Item) Tj ET
+BT /F2 10 Tf 206 646 Td (Description) Tj ET
+BT /F2 10 Tf 336 646 Td (Amount) Tj ET
+BT /F1 10 Tf 78 622 Td (Widget A) Tj ET
+BT /F1 10 Tf 206 622 Td (Anodized aluminium, boxed) Tj ET
+BT /F1 10 Tf 206 610 Td (in sets of ten) Tj ET
+BT /F1 10 Tf 470 622 Td (1,250.00) Tj ET
+BT /F1 10 Tf 78 586 Td (Widget B) Tj ET
+BT /F1 10 Tf 206 586 Td (Plain steel) Tj ET
+BT /F1 10 Tf 480 586 Td (980.00) Tj ET
+BT /F1 11 Tf 72 540 Td (Text after the table continues normally.) Tj ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 418 >>
+stream
+BT /F2 16 Tf 72 720 Td (Rotated Sidebar) Tj ET
+BT /F1 11 Tf 72 695 Td (Upright paragraph text sits here and reads normally across the page.) Tj ET
+BT /F1 11 Tf 72 680 Td (It continues for a second line of upright text.) Tj ET
+BT /F1 10 Tf 0.0000 1.0000 -1.0000 0.0000 560 300 Tm (CONFIDENTIAL DRAFT ROTATED SIDEBAR) Tj ET
+BT /F1 10 Tf 0.0000 1.0000 -1.0000 0.0000 575 300 Tm (second rotated line of the sidebar) Tj ET
+
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 647 >>
+stream
+BT /F2 16 Tf 72 720 Td (Equations) Tj ET
+BT /F1 11 Tf 72 695 Td (Inline: the energy is E = mc) Tj ET
+BT /F1 7 Tf 205.5 700 Td (2) Tj ET
+BT /F1 11 Tf 210 695 Td ( and the angle ) Tj ET
+BT /F3 11 Tf 285 695 Td (q) Tj ET
+BT /F1 11 Tf 292 695 Td ( is small.) Tj ET
+BT /F3 14 Tf 240 640 Td (S) Tj ET
+BT /F1 12 Tf 252 640 Td (x) Tj ET
+BT /F1 8 Tf 259 636 Td (i) Tj ET
+BT /F1 8 Tf 259 647 Td (2) Tj ET
+BT /F1 12 Tf 270 640 Td (= ) Tj ET
+BT /F3 12 Tf 284 640 Td (p) Tj ET
+BT /F1 12 Tf 296 640 Td ( + ) Tj ET
+BT /F3 12 Tf 312 640 Td (a) Tj ET
+BT /F3 12 Tf 322 640 Td (b) Tj ET
+BT /F1 11 Tf 72 600 Td (Where the sum runs over all samples in the set.) Tj ET
+
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+11 0 obj
+<< /Type /Catalog /Pages 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000106 00000 n 
+0000000208 00000 n 
+0000000275 00000 n 
+0000001168 00000 n 
+0000001315 00000 n 
+0000001784 00000 n 
+0000001931 00000 n 
+0000002629 00000 n 
+0000002776 00000 n 
+0000002846 00000 n 
+trailer
+<< /Size 12 /Root 11 0 R >>
+startxref
+2897
+%%EOF

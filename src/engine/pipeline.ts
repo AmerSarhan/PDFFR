@@ -1,9 +1,10 @@
-import { crop, pageImages, extractNative, loadDoc, renderPage, type PDFPageProxy } from './pdf';
+import { crop, extractNative, frameRuns, loadDoc, pageGraphics, renderPage, type PDFPageProxy } from './pdf';
 import { findRegions } from './oracle';
 import { OcrPool } from './ocr';
 import { buildLines, orderRuns } from './layout';
 import { bodySize, computeDropSet, countBlocks, toBlocks, type LayoutItem } from './structure';
-import type { Block, PageState, PipelineEvent, Region, Stats, TraceKind } from './types';
+import { getEnv, type CanvasLike } from './env';
+import type { Block, PageState, PipelineEvent, Region, Run, Stats, TraceKind } from './types';
 
 export interface PipelineOptions {
   ocr: OcrPool;
@@ -19,14 +20,14 @@ function ocrScale(pageW: number): number {
 }
 
 /** Split a text-less page into OCR chunks along its own ink so the pool can work in parallel. */
-function chunkScan(raster: HTMLCanvasElement, scale: number, w: number, h: number): Region[] {
+function chunkScan(raster: CanvasLike, scale: number, w: number, h: number): Region[] {
   const comps = findRegions(raster, scale, [], [], w, h);
   if (!comps.length) return [{ x: 0, y: 0, w, h }];
   return coalesce(comps);
 }
 
 /** Large figure regions get the same treatment: split along their ink so the pool can parallelize. */
-function splitLarge(raster: HTMLCanvasElement, scale: number, regions: Region[], pageArea: number): Region[] {
+function splitLarge(raster: CanvasLike, scale: number, regions: Region[], pageArea: number): Region[] {
   const out: Region[] = [];
   for (const r of regions) {
     if (r.w * r.h < pageArea * 0.12) {
@@ -40,6 +41,7 @@ function splitLarge(raster: HTMLCanvasElement, scale: number, regions: Region[],
       w: c.w,
       h: c.h,
     }));
+    getEnv().release(sub);
     if (comps.length >= 2) out.push(...coalesce(comps));
     else out.push(r);
   }
@@ -56,8 +58,8 @@ function coalesce(comps: Region[]): Region[] {
       (b) => c.y < b.y + b.h && b.y < c.y + c.h && !(b.w > pageW * 0.3 && c.w > pageW * 0.3),
     );
     if (hit) {
-      const x = Math.min(hit.x, c.x),
-        y = Math.min(hit.y, c.y);
+      const x = Math.min(hit.x, c.x);
+      const y = Math.min(hit.y, c.y);
       hit.w = Math.max(hit.x + hit.w, c.x + c.w) - x;
       hit.h = Math.max(hit.y + hit.h, c.y + c.h) - y;
       hit.x = x;
@@ -97,7 +99,7 @@ function coalesce(comps: Region[]): Region[] {
  * replace those placeholders in place as the worker pool finishes.
  */
 export async function runPipeline(
-  data: ArrayBuffer,
+  data: ArrayBuffer | Uint8Array,
   emit: (e: PipelineEvent) => void,
   opts: PipelineOptions,
 ) {
@@ -130,39 +132,67 @@ export async function runPipeline(
 
   const layoutPage = (st: PageState): Block[] => {
     const items: LayoutItem[] = [];
-    // native text: one reading-order tree for the page
-    if (st.native.length) {
-      items.push(...orderRuns(st.native));
+    // rotated text: a dominant rotation means the page itself is turned; a minority is a sidebar
+    const byRot = new Map<number, Run[]>();
+    for (const r of st.native) {
+      const k = r.rot || 0;
+      byRot.set(k, [...(byRot.get(k) || []), r]);
     }
-    // each OCR'd region is its own little document, placed where the image sat
-    const done = new Set(st.ocr.map((o) => o.region));
-    // a scanned page's OCR *is* the document (headings count); a figure inside a text page is not
+    const total = st.native.reduce((a, r) => a + r.text.length, 0);
+    let pageRot = 0;
+    for (const [rot, runs] of byRot) {
+      const chars = runs.reduce((a, r) => a + r.text.length, 0);
+      if (rot !== 0 && chars > total * 0.6) pageRot = rot;
+    }
+    let base: Run[] = byRot.get(pageRot) || [];
+    let frameH = st.height;
+    if (pageRot) {
+      const f = frameRuns(base, pageRot, st.width, st.height);
+      base = f.runs;
+      frameH = f.height;
+    }
+    if (base.length) items.push(...orderRuns(base, pageRot ? undefined : st.rules));
+    for (const [rot, runs] of byRot) {
+      if (rot === pageRot) continue;
+      const f = rot ? frameRuns(runs, rot, st.width, st.height) : { runs };
+      items.push({
+        kind: 'group',
+        y0: Math.min(...runs.map((r) => r.y)),
+        x0: Math.min(...runs.map((r) => r.x)),
+        leaves: orderRuns(f.runs),
+        body: bodySize(buildLines(f.runs)),
+        headings: false,
+      });
+    }
+    // each OCR'd region is its own little document, placed where the image sat;
+    // a scanned page's OCR *is* the document (headings count), a figure inside a text page is not
     const scanned = st.nativeChars < 20;
     const scanBody = scanned ? bodySize(buildLines(st.ocr.flatMap((o) => o.runs))) : 0;
+    const done = new Set(st.ocr.map((o) => o.region));
     for (const o of st.ocr) {
       if (!o.runs.length) continue;
-      const leaves = orderRuns(o.runs);
       items.push({
         kind: 'group',
         y0: o.region.y,
         x0: o.region.x,
-        leaves,
+        leaves: orderRuns(o.runs),
         body: scanned ? scanBody : bodySize(buildLines(o.runs)),
         headings: scanned,
       });
     }
     for (const r of st.regions) {
-      if (!done.has(r))
+      if (!done.has(r)) {
         items.push({
           kind: 'pending',
           y0: r.y,
           x0: r.x,
           label: `OCR in progress · region ${Math.round(r.w)}×${Math.round(r.h)}pt`,
         });
+      }
     }
     if (!items.length) return [];
-    const body = bodySize(buildLines(st.native));
-    return toBlocks(items, body, st.height, drop, n > 1);
+    const body = bodySize(buildLines(base));
+    return toBlocks(items, body, frameH, drop, n > 1);
   };
   const emitPage = (st: PageState) => {
     st.blocks = layoutPage(st);
@@ -180,9 +210,9 @@ export async function runPipeline(
   const processPage = async (i: number) => {
     const tp = performance.now();
     const page: PDFPageProxy = await doc.getPage(i);
-    // the operator list is needed for the image check and it also resolves fonts (bold/italic)
-    const [img, ext] = await Promise.all([pageImages(page), extractNative(page)]);
-    const images = img.count;
+    // the operator list gives bitmap rects and ruling lines, and it also resolves fonts (bold/italic)
+    const [gfx, ext] = await Promise.all([pageGraphics(page), extractNative(page)]);
+    const images = gfx.count;
     const st: PageState = {
       page: i,
       width: ext.width,
@@ -190,6 +220,7 @@ export async function runPipeline(
       native: ext.runs,
       ocr: [],
       regions: [],
+      rules: gfx.rules,
       pendingRegions: 0,
       blocks: [],
       nativeChars: ext.chars,
@@ -199,8 +230,17 @@ export async function runPipeline(
     };
     states[i - 1] = st;
     if (ext.chars > 0) stats.nativePages++;
-    if (ext.rotatedSkipped) trace('warn', `page ${i} · skipped ${ext.rotatedSkipped} rotated run(s)`);
-    trace('native', `page ${i} · ${ext.chars} chars from glyph coords · ${images} bitmap(s)`);
+    if (ext.skewedSkipped)
+      trace('warn', `page ${i} · skipped ${ext.skewedSkipped} skewed run(s) (watermark angle)`);
+    const rotated = ext.runs.filter((r) => r.rot).length;
+    trace(
+      'native',
+      `page ${i} · ${ext.chars} chars from glyph coords · ${images} bitmap(s)` +
+        (gfx.rules.h.length + gfx.rules.v.length
+          ? ` · ${gfx.rules.h.length + gfx.rules.v.length} ruling line(s)`
+          : '') +
+        (rotated ? ` · ${rotated} rotated run(s) re-framed` : ''),
+    );
 
     // ---------- render-diff oracle: only when pixels could hide text ----------
     const suspicious = escalate && (images > 0 || ext.chars < 20 || ext.coverage < 0.015);
@@ -219,13 +259,13 @@ export async function runPipeline(
         regions = splitLarge(
           raster,
           scale,
-          findRegions(raster, scale, ext.runs, img.rects, ext.width, ext.height),
+          findRegions(raster, scale, ext.runs, gfx.rects, ext.width, ext.height),
           ext.width * ext.height,
         );
         if (regions.length)
           trace(
             'esc',
-            `page ${i} · ${img.rects.length} bitmap rect(s) + render-diff → ${regions.length} region(s) to OCR`,
+            `page ${i} · ${gfx.rects.length} bitmap rect(s) + render-diff → ${regions.length} region(s) to OCR`,
           );
         else trace('struct', `page ${i} · render-diff: every ink pixel explained by native text · no OCR`);
       }
@@ -238,10 +278,7 @@ export async function runPipeline(
         // release the raster once every region of this page has been read
         let left = regions.length;
         const release = () => {
-          if (--left === 0) {
-            raster.width = 0;
-            raster.height = 0;
-          }
+          if (--left === 0) getEnv().release(raster);
         };
         for (const region of regions) {
           const whole = !scanned && region.w * region.h > ext.width * ext.height * 0.6;
@@ -276,7 +313,7 @@ export async function runPipeline(
               ),
           );
         }
-      }
+      } else getEnv().release(raster);
     }
     st.nativeMs = performance.now() - tp;
     emitPage(st);
@@ -298,7 +335,9 @@ export async function runPipeline(
   stats.nativeDoneMs = now();
 
   // ---------- document-level pass: headers/footers ----------
-  const dropSet = computeDropSet(states.map((s) => ({ lines: buildLines(s.native), height: s.height })));
+  const dropSet = computeDropSet(
+    states.map((s) => ({ lines: buildLines(s.native.filter((r) => !r.rot)), height: s.height })),
+  );
   if (dropSet.size) {
     for (const k of dropSet) drop.add(k);
     trace(
@@ -318,7 +357,7 @@ export async function runPipeline(
 
   // ---------- wait for the OCR pool to drain ----------
   if (ocrJobs.length) {
-    trace('ocr', `${ocrJobs.length} region(s) queued on ${opts.ocr.size} OCR worker(s)`);
+    trace('ocr', `${ocrJobs.length} region(s) queued on ${opts.ocr.size} OCR worker(s) (${opts.ocr.lang})`);
     await Promise.allSettled(ocrJobs);
   }
   stats.totalMs = now();

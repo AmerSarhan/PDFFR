@@ -10,8 +10,12 @@ export interface Run {
   size: number;
   bold: boolean;
   italic: boolean;
-  /** font name when known (used to spot Symbol/Wingdings bullet glyphs) */
+  /** font name when known (used to spot Symbol/Wingdings bullet glyphs and math fonts) */
   font?: string;
+  /** set in a math font, or carrying math symbols */
+  math?: boolean;
+  /** glyph rotation on the page: 0, 90, 180 or 270 degrees */
+  rot?: number;
   /** 0–100; native text is 100 */
   conf: number;
   src: 'native' | 'ocr';
@@ -28,10 +32,12 @@ export interface Line {
   size: number;
   /** plain text */
   text: string;
-  /** text with inline markdown (**bold**, *italic*, <sup>) */
+  /** text with inline markdown (**bold**, *italic*, <sup>, $math$) */
   rich: string;
   /** every run bold */
   bold: boolean;
+  /** the whole line is a math expression */
+  math: boolean;
 }
 
 export interface Table {
@@ -40,6 +46,12 @@ export interface Table {
   x1: number;
   y0: number;
   y1: number;
+}
+
+/** Ruling lines drawn on the page (page units, top-down), used to reconstruct ruled tables. */
+export interface Rules {
+  h: { y: number; x0: number; x1: number }[];
+  v: { x: number; y0: number; y1: number }[];
 }
 
 /** A leaf of the reading-order tree: either a run of lines or an atomic table. */
@@ -56,6 +68,7 @@ export interface ListItem {
 export type Block =
   | { type: 'heading'; level: number; text: string }
   | { type: 'para'; text: string }
+  | { type: 'math'; latex: string }
   | { type: 'list'; items: ListItem[] }
   | { type: 'table'; rows: string[][] }
   | { type: 'pending'; label: string };
@@ -85,6 +98,7 @@ export interface PageState {
   native: Run[];
   ocr: OcrResult[];
   regions: Region[];
+  rules: Rules;
   pendingRegions: number;
   blocks: Block[];
   nativeChars: number;

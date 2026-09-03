@@ -1,10 +1,6 @@
 import './style.css';
 import * as pdfjs from 'pdfjs-dist';
-import { setPdfWorkerSrc } from '../src/engine/pdf';
-import { runPipeline } from '../src/engine/pipeline';
-import { OcrPool } from '../src/engine/ocr';
-import { blocksToMarkdown } from '../src/engine/markdown';
-import { buildLines, orderRuns } from '../src/engine/layout';
+import { setPdfWorkerSrc, runPipeline, OcrPool, blocksToMarkdown, buildLines, orderRuns } from '../src/index';
 import type { Block, PageState, PipelineEvent, Stats } from '../src/engine/types';
 
 setPdfWorkerSrc(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href);
@@ -38,11 +34,18 @@ $('theme').onclick = () => {
 };
 
 /* ---------- OCR pool, warmed while the user is still choosing a file ---------- */
-const pool = new OcrPool();
+let pool = new OcrPool();
 pool.onStatus = (s) => log('info', s, 0);
 (window as any).requestIdleCallback
   ? (window as any).requestIdleCallback(() => pool.warm())
   : setTimeout(() => pool.warm(), 800);
+$<HTMLSelectElement>('lang').onchange = (e) => {
+  const lang = (e.target as HTMLSelectElement).value;
+  void pool.terminate();
+  pool = new OcrPool({ lang });
+  pool.onStatus = (s) => log('info', s, 0);
+  void pool.warm();
+};
 
 /* ---------- state ---------- */
 const pageBlocks = new Map<number, Block[]>();
@@ -116,7 +119,8 @@ function paintRendered() {
             )
             .join('') +
           '</table>';
-      } else html += `<p class="pending">${esc(b.label)}</p>`;
+      } else if (b.type === 'math') html += `<pre class="math">$$ ${esc(b.latex)} $$</pre>`;
+      else html += `<p class="pending">${esc(b.label)}</p>`;
     }
   }
   renderedEl.innerHTML = html || '<p class="empty">The decompiled document appears here.</p>';
@@ -134,6 +138,7 @@ function paintSource() {
           const e = esc(l);
           if (/^#{1,6}\s/.test(l)) return `<span class="h">${e}</span>`;
           if (/^<!--/.test(l)) return `<span class="cm">${e}</span>`;
+          if (/^\$\$/.test(l) || /^\\/.test(l)) return `<span class="m">${e}</span>`;
           return e;
         })
         .join('\n') + '\n';
@@ -184,7 +189,10 @@ async function openViewer(data: ArrayBuffer) {
   await viewerDoc?.loadingTask.destroy();
   pagesEl.querySelectorAll('.page').forEach((e) => e.remove());
   pageEls.clear();
-  viewerDoc = await pdfjs.getDocument({ data: data.slice(0) }).promise;
+  viewerDoc = await pdfjs.getDocument({
+    data: data.slice(0),
+    standardFontDataUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+  }).promise;
   hintEl.hidden = true;
   const observer = new IntersectionObserver(
     (entries) => {

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-// Library build: ESM only, pdf.js and tesseract stay external (peer dependencies).
+// Library build: ESM only; pdf.js, tesseract and the Node canvas stay external (peer dependencies).
 export default defineConfig({
   build: {
     target: 'es2022',
@@ -8,12 +8,13 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     lib: {
-      entry: 'src/index.ts',
+      entry: { index: 'src/index.ts', node: 'src/node.ts' },
       formats: ['es'],
-      fileName: () => 'index.js',
+      fileName: (_format, name) => `${name}.js`,
     },
     rollupOptions: {
-      external: ['pdfjs-dist', 'tesseract.js'],
+      external: [/^pdfjs-dist/, 'tesseract.js', '@napi-rs/canvas', /^node:/],
+      output: { chunkFileNames: 'chunks/[name]-[hash].js' },
     },
   },
 });

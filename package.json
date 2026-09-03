@@ -1,7 +1,7 @@
 {
   "name": "pdffr",
   "version": "0.1.0",
-  "description": "PDF → Markdown decompiler that runs entirely in the browser: native glyph geometry in milliseconds, render-diff-guided on-device OCR only where the text layer can't explain the ink.",
+  "description": "PDF → Markdown decompiler for the browser and Node: native glyph geometry in milliseconds, render-diff-guided on-device OCR only where the text layer can't explain the ink.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -10,14 +10,28 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
     }
+  },
+  "bin": {
+    "pdffr": "bin/pdffr.js"
   },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/node.js"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "npm run build:lib && npm run build:demo",
@@ -30,10 +44,17 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run build:lib"
   },
   "peerDependencies": {
+    "@napi-rs/canvas": ">=0.1.60",
     "pdfjs-dist": ">=4.0.0",
     "tesseract.js": ">=6.0.0"
   },
+  "peerDependenciesMeta": {
+    "@napi-rs/canvas": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.8",
     "@types/node": "^26.4.1",
     "pdfjs-dist": "^6.3.289",
     "prettier": "^3.9.6",
@@ -52,11 +73,13 @@
     "pdfjs",
     "document-parsing",
     "layout-analysis",
+    "latex",
     "browser",
     "client-side",
-    "privacy"
+    "privacy",
+    "cli"
   ],
-  "author": "Amer Sarhan",
+  "author": "Amer Sarhan <amer.sarhan@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",

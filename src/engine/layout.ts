@@ -1,4 +1,4 @@
-import type { Leaf, Line, Run, Table } from './types';
+import type { Leaf, Line, Rules, Run, Table } from './types';
 
 /* ---------- small helpers ---------- */
 export function median(a: number[]): number {
@@ -9,6 +9,95 @@ export function median(a: number[]): number {
 
 function esc(s: string): string {
   return s.replace(/([*_`\\])/g, '\\$1');
+}
+
+/* ---------- math ---------- */
+
+const TEX: Record<string, string> = {
+  α: '\\alpha',
+  β: '\\beta',
+  γ: '\\gamma',
+  δ: '\\delta',
+  ε: '\\epsilon',
+  ζ: '\\zeta',
+  η: '\\eta',
+  θ: '\\theta',
+  ι: '\\iota',
+  κ: '\\kappa',
+  λ: '\\lambda',
+  μ: '\\mu',
+  ν: '\\nu',
+  ξ: '\\xi',
+  π: '\\pi',
+  ρ: '\\rho',
+  σ: '\\sigma',
+  ς: '\\varsigma',
+  τ: '\\tau',
+  υ: '\\upsilon',
+  φ: '\\phi',
+  χ: '\\chi',
+  ψ: '\\psi',
+  ω: '\\omega',
+  Γ: '\\Gamma',
+  Δ: '\\Delta',
+  Θ: '\\Theta',
+  Λ: '\\Lambda',
+  Ξ: '\\Xi',
+  Π: '\\Pi',
+  Σ: '\\Sigma',
+  Φ: '\\Phi',
+  Ψ: '\\Psi',
+  Ω: '\\Omega',
+  '∑': '\\sum',
+  '∏': '\\prod',
+  '∫': '\\int',
+  '√': '\\sqrt',
+  '∞': '\\infty',
+  '≤': '\\le',
+  '≥': '\\ge',
+  '≠': '\\ne',
+  '≈': '\\approx',
+  '≡': '\\equiv',
+  '±': '\\pm',
+  '×': '\\times',
+  '÷': '\\div',
+  '∂': '\\partial',
+  '∇': '\\nabla',
+  '∈': '\\in',
+  '∉': '\\notin',
+  '⊂': '\\subset',
+  '⊆': '\\subseteq',
+  '⊃': '\\supset',
+  '⊇': '\\supseteq',
+  '∪': '\\cup',
+  '∩': '\\cap',
+  '→': '\\to',
+  '←': '\\leftarrow',
+  '⇒': '\\Rightarrow',
+  '⇔': '\\Leftrightarrow',
+  '∀': '\\forall',
+  '∃': '\\exists',
+  '∝': '\\propto',
+  '∅': '\\emptyset',
+  '⋅': '\\cdot',
+  '·': '\\cdot',
+  '−': '-',
+};
+// a lone, larger Σ or Π in a math font is an operator, not a letter
+const BIG_OP: Record<string, string> = { Σ: '\\sum', Π: '\\prod' };
+const MATH_TOKEN = /^[A-Za-z0-9=+\-−±×÷<>()[\]|.,]{1,3}$/;
+
+function toTex(r: Run, lineSize: number): string {
+  const t = r.text.trim();
+  if (BIG_OP[t] && r.size > lineSize * 1.08) return BIG_OP[t];
+  let out = '';
+  for (const ch of t) {
+    const m = TEX[ch];
+    if (m) out += m + ' ';
+    else if ('%#&{}'.includes(ch)) out += '\\' + ch;
+    else if (ch !== ' ') out += ch;
+  }
+  return out.trim();
 }
 
 /* ---------- runs → lines ---------- */
@@ -58,7 +147,7 @@ function finishLine(runs: Run[]): Line {
   const size = median(sizes);
   const boldChars = runs.filter((r) => r.bold).reduce((a, r) => a + r.text.trim().length, 0);
   const totalChars = runs.reduce((a, r) => a + r.text.trim().length, 0);
-  const { text, rich } = joinRuns(runs, size);
+  const { text, rich, math } = joinRuns(runs, size);
   return {
     runs,
     x0,
@@ -69,46 +158,136 @@ function finishLine(runs: Run[]): Line {
     size,
     text,
     rich,
+    math,
     bold: totalChars > 0 && boldChars / totalChars >= 0.8,
   };
 }
 
-/** Join runs left→right, inserting spaces across gaps and emitting inline markdown for style changes. */
-export function joinRuns(runs: Run[], lineSize: number): { text: string; rich: string } {
-  type Seg = { text: string; bold: boolean; italic: boolean; sup: boolean };
-  const segs: Seg[] = [];
-  const bottom = runs.reduce((a, q) => Math.max(a, q.y + q.h), 0);
-  let prev: Run | null = null;
-  let plain = '';
-  for (const r of runs) {
-    const t = r.text.trim();
-    if (!t) continue;
-    const sup = r.size < lineSize * 0.72 && r.y + r.h < bottom - lineSize * 0.28;
-    let sep = '';
-    if (prev) {
-      const gap = r.x - (prev.x + prev.w);
-      if (gap > lineSize * 0.22 || /\s$/.test(prev.text) || /^\s/.test(r.text)) sep = ' ';
-      else if (gap > lineSize * 0.06 && !/[-(\[/]$/.test(prev.text) && !/^[.,;:)\]]/.test(r.text)) sep = ' ';
+/**
+ * Join runs left→right, inserting spaces across gaps and emitting inline markdown for style
+ * changes. Runs in math fonts (plus the sub/superscripts and short tokens glued to them) become
+ * a `$…$` span in LaTeX; the line is `math` when every run belongs to one.
+ */
+export function joinRuns(runs: Run[], lineSize: number): { text: string; rich: string; math: boolean } {
+  const rs = runs.filter((r) => r.text.trim());
+  if (!rs.length) return { text: '', rich: '', math: false };
+  const base = rs.filter((r) => r.size >= lineSize * 0.72);
+  const ref = base.length ? base : rs;
+  const top = Math.min(...ref.map((r) => r.y));
+  const bottom = Math.max(...ref.map((r) => r.y + r.h));
+  const mid = (top + bottom) / 2;
+  const small = rs.map((r) => r.size < lineSize * 0.72);
+  const sup = rs.map((r, i) => small[i] && r.y + r.h / 2 < mid - lineSize * 0.12);
+  const sub = rs.map((r, i) => small[i] && r.y + r.h / 2 > mid + lineSize * 0.12);
+  const gapBefore = rs.map((r, i) => (i ? r.x - (rs[i - 1].x + rs[i - 1].w) : Infinity));
+
+  // math spans: math-font runs, extended over attached scripts and short tokens next to them
+  const inMath = rs.map((r) => !!r.math);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (let i = 0; i < rs.length; i++) {
+      if (inMath[i]) continue;
+      const cand = sup[i] || sub[i] || MATH_TOKEN.test(rs[i].text.trim());
+      if (!cand) continue;
+      const left = i > 0 && inMath[i - 1] && gapBefore[i] < lineSize * 0.6;
+      const right = i + 1 < rs.length && inMath[i + 1] && gapBefore[i + 1] < lineSize * 0.6;
+      if (left || right) {
+        inMath[i] = true;
+        grew = true;
+      }
     }
-    plain += sep + t;
-    const last = segs[segs.length - 1];
-    if (last && last.bold === r.bold && last.italic === r.italic && last.sup === sup) last.text += sep + t;
-    else segs.push({ text: (segs.length ? sep : '') + t, bold: r.bold, italic: r.italic, sup });
-    prev = r;
   }
+
+  const sep = (i: number) => {
+    if (!i) return '';
+    const prev = rs[i - 1];
+    const r = rs[i];
+    const gap = gapBefore[i];
+    if (gap > lineSize * 0.22 || /\s$/.test(prev.text) || /^\s/.test(r.text)) return ' ';
+    if (gap > lineSize * 0.06 && !/[-(\[/]$/.test(prev.text) && !/^[.,;:)\]]/.test(r.text)) return ' ';
+    return '';
+  };
+
+  type Seg = { text: string; bold: boolean; italic: boolean; sup: boolean; sub: boolean; latex?: string };
+  const segs: Seg[] = [];
+  let plain = '';
+  for (let i = 0; i < rs.length;) {
+    if (inMath[i]) {
+      let j = i;
+      while (j + 1 < rs.length && inMath[j + 1]) j++;
+      // attach scripts to the base token on their left
+      const bases: { tex: string; sup: string; sub: string }[] = [];
+      let span = '';
+      for (let k = i; k <= j; k++) {
+        span += (k > i ? sep(k) : '') + rs[k].text.trim();
+        const tex = toTex(rs[k], lineSize);
+        const last = bases[bases.length - 1];
+        if (sup[k] && last) last.sup += tex;
+        else if (sub[k] && last) last.sub += tex;
+        else bases.push({ tex, sup: '', sub: '' });
+      }
+      const latex = bases
+        .map((b) => b.tex + (b.sub ? `_{${b.sub}}` : '') + (b.sup ? `^{${b.sup}}` : ''))
+        .join(' ');
+      plain += sep(i) + span;
+      segs.push({
+        text: (segs.length ? sep(i) : '') + span,
+        bold: false,
+        italic: false,
+        sup: false,
+        sub: false,
+        latex,
+      });
+      i = j + 1;
+      continue;
+    }
+    const r = rs[i];
+    const t = r.text.trim();
+    const s = sep(i);
+    plain += s + t;
+    const last = segs[segs.length - 1];
+    if (
+      last &&
+      !last.latex &&
+      last.bold === r.bold &&
+      last.italic === r.italic &&
+      last.sup === sup[i] &&
+      last.sub === sub[i]
+    ) {
+      last.text += s + t;
+    } else
+      segs.push({
+        text: (segs.length ? s : '') + t,
+        bold: r.bold,
+        italic: r.italic,
+        sup: sup[i],
+        sub: sub[i],
+      });
+    i++;
+  }
+
   let rich = '';
   for (const s of segs) {
     const lead = s.text.match(/^\s*/)![0];
     let body = s.text.slice(lead.length);
     if (!body) continue;
-    body = esc(body);
-    if (s.sup) body = `<sup>${body}</sup>`;
-    else if (s.bold && s.italic) body = `***${body}***`;
-    else if (s.bold) body = `**${body}**`;
-    else if (s.italic) body = `*${body}*`;
+    if (s.latex) body = `$${s.latex}$`;
+    else {
+      body = esc(body);
+      if (s.sup) body = `<sup>${body}</sup>`;
+      else if (s.sub) body = `<sub>${body}</sub>`;
+      else if (s.bold && s.italic) body = `***${body}***`;
+      else if (s.bold) body = `**${body}**`;
+      else if (s.italic) body = `*${body}*`;
+    }
     rich += lead + body;
   }
-  return { text: plain.replace(/\s+/g, ' ').trim(), rich: rich.replace(/\s+/g, ' ').trim() };
+  return {
+    text: plain.replace(/\s+/g, ' ').trim(),
+    rich: rich.replace(/\s+/g, ' ').trim(),
+    math: inMath.every(Boolean) && rs.some((r) => r.math),
+  };
 }
 
 /* ---------- bullets ---------- */
@@ -131,7 +310,7 @@ export interface Bullet {
 export function bulletOf(ln: Line): Bullet | null {
   const r0 = ln.runs[0];
   const t0 = r0.text.trim();
-  if (ln.runs.length > 1 && t0.length <= 4) {
+  if (ln.runs.length > 1 && t0.length <= 4 && !r0.math) {
     const r1 = ln.runs[1];
     const gap = r1.x - (r0.x + r0.w);
     const symbolFont = BULLET_FONT.test(r0.font || '');
@@ -154,7 +333,7 @@ export function bulletOf(ln: Line): Bullet | null {
 /* ---------- tables ---------- */
 
 function hasText(s: string): boolean {
-  return /[A-Za-z0-9]/.test(s);
+  return /[\p{L}\p{N}]/u.test(s);
 }
 
 /** Split a line into cells at gaps wider than a tab stop; leading bullet glyphs are not cells. */
@@ -175,7 +354,6 @@ function cells(ln: Line): { text: string; x: number }[] {
     cur += r.text;
   }
   if (cur.trim()) out.push({ text: cur.trim(), x: cx });
-  // drop marker glyphs (bullets) — they never form a column
   return out.filter((c) => hasText(c.text) && !(c.text.length === 1 && BULLET_CHARS.test(c.text)));
 }
 
@@ -186,7 +364,7 @@ function compatible(a: { x: number }[], b: { x: number }[], tol: number): boolea
   return m >= need;
 }
 
-/** Find runs of vertically adjacent lines whose cell starts align — tables. */
+/** Find runs of vertically adjacent lines whose cell starts align — tables without rules. */
 export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
   const sorted = [...lines].sort((a, b) => a.y - b.y);
   const tables: Table[] = [];
@@ -197,7 +375,7 @@ export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
     let j = i;
     while (j < sorted.length) {
       const ln = sorted[j];
-      if (bulletOf(ln)) break; // list items are never table rows
+      if (bulletOf(ln) || ln.math) break;
       const cs = cells(ln);
       const isRow = cs.length >= 2 && cs.every((c) => c.text.length <= 70);
       if (!isRow) break;
@@ -209,7 +387,6 @@ export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
       group.push({ line: ln, cells: cs });
       j++;
     }
-    // a table needs ≥2 rows and real column structure (≥3 cells somewhere, or ≥3 rows of 2)
     const maxCells = Math.max(0, ...group.map((g) => g.cells.length));
     if (group.length >= 2 && (maxCells >= 3 || group.length >= 3)) {
       const size = median(group.map((g) => g.line.size));
@@ -241,6 +418,121 @@ export function detectTables(lines: Line[]): { tables: Table[]; rest: Line[] } {
     } else i++;
   }
   return { tables, rest: sorted.filter((l) => !used.has(l)) };
+}
+
+/**
+ * Tables drawn with ruling lines. Horizontal rules that overlap horizontally form a frame;
+ * vertical rules spanning the frame give the columns (or, with rules only between rows, cells
+ * come from gaps and columns from aligned starts). Text is assigned to cells by position, so
+ * multi-line cells and unaligned starts are fine.
+ */
+export function detectRuledTables(lines: Line[], rules?: Rules): { tables: Table[]; rest: Line[] } {
+  if (!rules || rules.h.length < 2) return { tables: [], rest: lines };
+  const bands: { y: number; x0: number; x1: number }[] = [];
+  for (const r of [...rules.h].sort((a, b) => a.y - b.y)) {
+    const l = bands[bands.length - 1];
+    if (l && Math.abs(l.y - r.y) < 1.5) {
+      l.x0 = Math.min(l.x0, r.x0);
+      l.x1 = Math.max(l.x1, r.x1);
+    } else bands.push({ ...r });
+  }
+  const frames: { ys: number[]; x0: number; x1: number }[] = [];
+  for (const b of bands) {
+    const f = frames[frames.length - 1];
+    if (f) {
+      const overlap = Math.min(f.x1, b.x1) - Math.max(f.x0, b.x0);
+      const shorter = Math.min(f.x1 - f.x0, b.x1 - b.x0);
+      if (overlap > shorter * 0.5 && b.y - f.ys[f.ys.length - 1] < 400) {
+        f.ys.push(b.y);
+        f.x0 = Math.min(f.x0, b.x0);
+        f.x1 = Math.max(f.x1, b.x1);
+        continue;
+      }
+    }
+    frames.push({ ys: [b.y], x0: b.x0, x1: b.x1 });
+  }
+
+  const tables: Table[] = [];
+  const used = new Set<Line>();
+  for (const f of frames) {
+    if (f.ys.length < 2) continue;
+    const y0 = f.ys[0];
+    const y1 = f.ys[f.ys.length - 1];
+    if (y1 - y0 < 8) continue;
+    const inside = lines.filter(
+      (l) => !used.has(l) && l.y > y0 - 1 && l.y < y1 + 1 && l.x0 >= f.x0 - 4 && l.x1 <= f.x1 + 4,
+    );
+    if (!inside.length) continue;
+    const size = median(inside.map((l) => l.size)) || 10;
+
+    const vs = rules.v
+      .filter(
+        (v) =>
+          v.x >= f.x0 - 2 && v.x <= f.x1 + 2 && Math.min(v.y1, y1) - Math.max(v.y0, y0) > (y1 - y0) * 0.5,
+      )
+      .map((v) => v.x)
+      .sort((a, b) => a - b);
+    const colBounds: number[] = [];
+    for (const x of vs) if (!colBounds.length || x - colBounds[colBounds.length - 1] > 1.5) colBounds.push(x);
+
+    let rowBounds = f.ys;
+    if (rowBounds.length < 3) {
+      // only a top and bottom rule: each baseline cluster is a row
+      const cl: number[] = [];
+      for (const y of inside.map((l) => l.y).sort((a, b) => a - b))
+        if (!cl.length || y - cl[cl.length - 1] > size * 0.8) cl.push(y);
+      rowBounds = [y0, ...cl.slice(1).map((y, i) => (cl[i] + y) / 2), y1];
+    }
+    const nRows = rowBounds.length - 1;
+    if (nRows < 1) continue;
+    const rowOf = (y: number) => {
+      for (let i = 0; i < nRows; i++) if (y < rowBounds[i + 1]) return i;
+      return nRows - 1;
+    };
+    const rows: string[][] = Array.from({ length: nRows }, () => []);
+    const put = (ri: number, ci: number, t: string) => {
+      rows[ri][ci] = rows[ri][ci] ? rows[ri][ci] + ' ' + t : t;
+    };
+
+    if (colBounds.length >= 2) {
+      const nCols = colBounds.length - 1;
+      for (const r of rows) for (let c = 0; c < nCols; c++) r.push('');
+      for (const l of inside) {
+        const ri = rowOf(l.y);
+        for (const run of l.runs) {
+          const t = run.text.trim();
+          if (!t) continue;
+          const cx = run.x + run.w / 2;
+          let ci = 0;
+          for (let c = 0; c < nCols; c++) if (cx >= colBounds[c]) ci = c;
+          put(ri, ci, t);
+        }
+      }
+    } else {
+      const rowCells = inside.map((l) => ({ ri: rowOf(l.y), cells: cells(l) }));
+      const xs = rowCells.flatMap((r) => r.cells.map((c) => c.x)).sort((a, b) => a - b);
+      const cols: number[] = [];
+      for (const x of xs) {
+        if (!cols.length || x - cols[cols.length - 1] > size * 1.4) cols.push(x);
+        else cols[cols.length - 1] = (cols[cols.length - 1] + x) / 2;
+      }
+      if (cols.length < 2) continue;
+      for (const r of rows) for (let c = 0; c < cols.length; c++) r.push('');
+      for (const rc of rowCells) {
+        for (const c of rc.cells) {
+          let best = 0;
+          for (let k = 1; k < cols.length; k++)
+            if (Math.abs(cols[k] - c.x) < Math.abs(cols[best] - c.x)) best = k;
+          put(rc.ri, best, c.text);
+        }
+      }
+    }
+    const filled = rows.filter((r) => r.some((c) => c));
+    if (filled.length < 2 || filled[0].length < 2) continue;
+    tables.push({ rows: filled, x0: f.x0, x1: f.x1, y0, y1 });
+    inside.forEach((l) => used.add(l));
+  }
+  return { tables, rest: lines.filter((l) => !used.has(l)) };
 }
 
 /* ---------- reading order: XY-cut over whitespace ---------- */
@@ -302,7 +594,7 @@ function bbox(runs: Run[]): Box {
  * Recursively split the region on whitespace. Columns first when a tall gutter exists,
  * otherwise the largest horizontal band; leaves get table detection and y-ordering.
  */
-export function orderRuns(runs: Run[], depth = 0): Leaf[] {
+export function orderRuns(runs: Run[], rules?: Rules, depth = 0): Leaf[] {
   if (!runs.length) return [];
   const box = bbox(runs);
   const lines = buildLines(runs);
@@ -319,10 +611,10 @@ export function orderRuns(runs: Run[], depth = 0): Leaf[] {
         const above = spanning.filter((r) => r.y < colTop);
         const below = spanning.filter((r) => r.y >= colTop);
         return [
-          ...orderRuns(above, depth + 1),
-          ...orderRuns(L, depth + 1),
-          ...orderRuns(R, depth + 1),
-          ...orderRuns(below, depth + 1),
+          ...orderRuns(above, rules, depth + 1),
+          ...orderRuns(L, rules, depth + 1),
+          ...orderRuns(R, rules, depth + 1),
+          ...orderRuns(below, rules, depth + 1),
         ];
       }
     }
@@ -338,14 +630,21 @@ export function orderRuns(runs: Run[], depth = 0): Leaf[] {
       }
       maxY1 = Math.max(maxY1, sorted[i].y1);
     }
-    if (bestGap > size * 1.1) {
+    // never cut through a ruled frame
+    const insideFrame = rules?.h.some((r) => Math.abs(r.y - cutY) < 0.5)
+      ? false
+      : rules?.v.some((v) => v.y0 < cutY && v.y1 > cutY);
+    if (bestGap > size * 1.1 && !insideFrame) {
       const top = runs.filter((r) => r.y + r.h / 2 < cutY);
       const bot = runs.filter((r) => r.y + r.h / 2 >= cutY);
-      if (top.length && bot.length) return [...orderRuns(top, depth + 1), ...orderRuns(bot, depth + 1)];
+      if (top.length && bot.length)
+        return [...orderRuns(top, rules, depth + 1), ...orderRuns(bot, rules, depth + 1)];
     }
   }
 
-  const { tables, rest } = detectTables(lines);
+  const ruled = detectRuledTables(lines, rules);
+  const aligned = detectTables(ruled.rest);
+  const tables = [...ruled.tables, ...aligned.tables];
   const leaves: Leaf[] = tables.map((t) => ({
     kind: 'table',
     table: t,
@@ -354,7 +653,7 @@ export function orderRuns(runs: Run[], depth = 0): Leaf[] {
     y0: t.y0,
     y1: t.y1,
   }));
-  const restSorted = rest.sort((a, b) => a.y - b.y);
+  const restSorted = aligned.rest.sort((a, b) => a.y - b.y);
   let cur: Line[] = [];
   const flush = () => {
     if (cur.length) {

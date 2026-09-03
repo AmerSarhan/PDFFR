@@ -30,6 +30,9 @@ export function blocksToMarkdown(blocks: Block[]): string {
       case 'para':
         out.push(b.text);
         break;
+      case 'math':
+        out.push(`$$\n${b.latex}\n$$`);
+        break;
       case 'list':
         out.push(list(b.items));
         break;

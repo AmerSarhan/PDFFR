@@ -1,4 +1,5 @@
 import type { Region, Run } from './types';
+import type { CanvasLike } from './env';
 
 /**
  * Render-diff oracle.
@@ -9,7 +10,7 @@ import type { Region, Run } from './types';
  * rectangles the operator list gives us, those are the only pixels worth sending to OCR.
  */
 export function findRegions(
-  canvas: HTMLCanvasElement,
+  canvas: CanvasLike,
   scale: number,
   native: Run[],
   imageRects: Region[],

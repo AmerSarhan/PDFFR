@@ -8,4 +8,9 @@ Initial release.
 - Render-diff oracle: exact bitmap rectangles from the content stream plus the raster's residual ink, so OCR only ever sees pixels the text layer cannot explain.
 - On-device OCR pool (tesseract.js) with upsampling for small crops, second reads of doubtful words, and a text-plausibility gate that rejects icons and charts regardless of reported confidence.
 - Streaming pipeline: concurrent native pass, placeholders for pending regions, in-place replacement as OCR completes; whole-page scans split along their own ink for parallel OCR.
-- Public API: `decompile()`, `warmOcr()`, `runPipeline()`, `blocksToMarkdown()`, `setPdfWorkerSrc()`.
+- Ruled tables reconstructed from the content stream's line segments (CTM-tracked), including multi-line cells and cells without aligned starts.
+- Rotated text: pages turned by 90/180/270° are read upright; rotated sidebars become their own groups; skewed watermarks are dropped.
+- Math: runs in math fonts and their sub/superscripts become `$…$` / `$$…$$` LaTeX (Greek, operators, `\sum`, scripts).
+- OCR in any tesseract language (`lang` option, demo selector); the plausibility gate is Unicode-aware, and icons that OCR into characters are rejected by ink density and colour relative to their line.
+- Node runtime (`pdffr/node`, `@napi-rs/canvas`) and a `pdffr` CLI.
+- Public API: `decompile()`, `decompileFile()` (Node), `warmOcr()`, `terminateOcr()`, `runPipeline()`, `blocksToMarkdown()`, `setPdfWorkerSrc()`.

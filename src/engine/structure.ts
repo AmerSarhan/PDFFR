@@ -10,11 +10,12 @@ export function bodySize(lines: Line[]): number {
   }
   let best = 10;
   let bc = -1;
-  for (const [k, c] of freq)
+  for (const [k, c] of freq) {
     if (c > bc) {
       bc = c;
       best = k;
     }
+  }
   return best || 10;
 }
 
@@ -90,7 +91,7 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
   const lines = all
     .filter((l) => !isPageFurniture(l, ctx.pageH, ctx.drop, ctx.multiPage))
     // a bullet glyph alone on its line marks an item whose content is a figure — nothing to say
-    .filter((l) => !(l.runs.length === 1 && LONE_MARKER.test(l.text)));
+    .filter((l) => !(l.runs.length === 1 && LONE_MARKER.test(l.text) && !l.math));
   if (!lines.length) return blocks;
 
   // indent levels for nested lists: cluster the x of every marker in this leaf
@@ -143,9 +144,20 @@ function linesToBlocks(all: Line[], leafW: number, ctx: Ctx): Block[] {
     const endsSentence = /[.:;,]$/.test(l.text);
     const bullet = bulletOf(l);
 
+    // --- a line that is entirely an equation: display math when it stands on its own ---
+    if (l.math) {
+      const standalone = l.x1 - l.x0 < leafW * 0.85 || gapBefore > l.size * 0.4 || gapAfter > l.size * 0.4;
+      if (standalone) {
+        flushPara();
+        flushList();
+        blocks.push({ type: 'math', latex: l.rich.replace(/^\$|\$$/g, '') });
+        continue;
+      }
+    }
+
     // --- heading by size, or by an isolated bold line ---
     let level = 0;
-    if (!bullet && ctx.headings) {
+    if (!bullet && !l.math && ctx.headings) {
       if (ratio >= 1.7 && short) level = 1;
       else if (ratio >= 1.32 && short) level = 2;
       else if (ratio >= 1.12 && short && !endsSentence) level = 3;

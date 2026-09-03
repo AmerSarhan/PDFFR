@@ -108,12 +108,36 @@ Checking the gutter before horizontal bands is deliberate: XY-cut's classic fail
 - **Hyphenation**: a line ending in `letter-` followed by a lowercase line is joined without the hyphen, except after common prefixes (`re-`, `co-`, `pre-`, `non-`, `self-`, `anti-`, `multi-`, `semi-`, `cross-`, `ex-`, `e-`).
 - **Furniture**: on documents of ≥ 2 pages, normalised text (digits → `#`) in the top or bottom 9% of the page that recurs on ≥ 50% of pages is dropped, as are bare page numbers in those bands.
 
-## 8. What is deliberately not done
+## 8. Rotated text (`pdf.ts` → `pipeline.ts`)
+
+Every run's angle is `atan2(b, a)` of its text matrix. Angles within 5° of a multiple of 90° are kept with `rot ∈ {90, 180, 270}`; anything else (a diagonal watermark) is dropped, because reordering it would only corrupt the text around it. A run's page box is computed generically from its advance and glyph-up vectors, so the render-diff oracle sees rotated glyphs exactly like upright ones.
+
+At layout time runs are grouped by rotation. If one non-zero rotation carries more than 60% of the page's characters the page itself is turned: those runs are mapped into an upright frame (`frameRuns`: 90° → `(H − y, x)`, 180° → `(W − x, H − y)`, 270° → `(y, W − x)`) and laid out as the page, with the frame's height driving furniture detection. Any other rotation (a sidebar, a rotated table header) becomes its own group, laid out in its own upright frame and placed by its page-space position, with headings disabled.
+
+## 9. Ruled tables (`pdf.ts` → `layout.ts`)
+
+The same CTM walk that finds bitmaps records every stroked `lineTo` and every hairline filled rectangle as a segment; segments within 0.6pt of horizontal or vertical and at least 6pt long are rules, merged when collinear within 1.2pt and touching within 2pt.
+
+`detectRuledTables` clusters horizontal rules by y (1.5pt) into bands, then chains bands whose x-extents overlap by more than half the shorter one into frames. A frame needs two or more rules at least 8pt apart. Vertical rules that lie inside the frame's x-range and span more than half its height give column boundaries; text runs are assigned to cells by the x of their centre and the row band of their line's centre, so multi-line cells and cells whose contents don't share a left edge both work. With only top and bottom rules, rows come from baseline clusters (0.8·size); with only horizontal rules, cells come from gaps (`cells()`) and columns from clustering their starts (1.4·size). Frames with fewer than two text rows or two columns are ignored. The XY-cut never splits at a whitespace band that crosses a vertical rule.
+
+## 10. Math (`pdf.ts` → `layout.ts` → `structure.ts`)
+
+A run is math if its font name matches `/symbol|cmmi|cmsy|cmex|cmr\d|math|mtextra|euclid|stix|xits|asana|mathjax|mathpi/` (bullet glyphs in Symbol excepted) or its text carries a math symbol (`∑ ∫ √ ≤ ≥ ≠ ± × ÷ ∂ ∇ ∈ → α–ω Γ–Ω …`). Within a line, math runs seed spans that grow over neighbouring sub/superscripts and short tokens (`x`, `=`, `+`, `2`, `(`) within 0.6·size. A script is a run under 0.72·size whose centre sits more than 0.12·size above (superscript) or below (subscript) the base runs' centre; scripts attach to the token on their left as `_{}` / `^{}`. Greek and symbols map to LaTeX commands; a lone `Σ`/`Π` larger than 1.08·size is `\sum`/`\prod`. A span renders as `$…$`; a line that is entirely one span and stands on its own (narrower than 85% of the leaf, or gapped from its neighbours) becomes a `$$…$$` block. Fractions, radicands, matrices and multi-line alignments are not reconstructed.
+
+## 11. Icons that OCR into characters (`ocr.ts`)
+
+Tesseract will happily read a star as `77` or an info icon as `©`, at high confidence. A short token (≤ 3 characters, not a word) is compared with the glyphs on its own line using one `getImageData` of the crop: it is dropped when its ink density exceeds max(0.38, 1.7× the line's median word density) — solid shapes versus strokes — or when more than 35% of its non-white pixels are coloured (channel spread > 50), since text is unsaturated and icons rarely are. A thin grey outline icon passes both tests; that is the remaining gap.
+
+## 12. Runtimes (`env.ts`, `index.ts`, `node.ts`)
+
+The engine never imports pdf.js or a canvas directly; the entry point installs an `Env` with the pdf.js build, a canvas factory, how to hand tesseract an image, and how to release a canvas. `pdffr` (browser) uses the modern build, DOM canvases and passes canvases to tesseract; `pdffr/node` uses the legacy build, `@napi-rs/canvas`, PNG buffers, and a tesseract cache under the OS temp dir. `bin/pdffr.js` wraps the Node entry.
+
+## 13. What is deliberately not done
 
 - No dictionary, no language model, no word lists. Every decision is geometric so it survives scans, screenshots and languages the author never saw.
 - No absolute thresholds in points. Everything is relative to the local size or the leaf's own leading.
 - No global "document type" switch. A two-column paper, a Word memo with screenshots, and a scanned invoice run the same code path.
 
-## 9. Known gaps
+## 14. Known gaps
 
-Math, rotated text, ruled-but-unaligned tables, icons that OCR into digits, English-only OCR, browser-only runtime. See the README's roadmap.
+Fractions and multi-line math, math in text fonts, spanning table cells, outline icons, no bold/italic from OCR. See the README.

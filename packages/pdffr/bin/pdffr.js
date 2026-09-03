@@ -73,7 +73,12 @@ try {
   });
   const want = pagesSpec ? pageSet(pagesSpec, res.stats.pages) : null;
   const pages = want ? res.pages.filter((p) => want.has(p.page)) : res.pages;
-  const markdown = want ? pages.map((p) => p.markdown).filter(Boolean).join('\n\n') : res.markdown;
+  const markdown = want
+    ? pages
+        .map((p) => p.markdown)
+        .filter(Boolean)
+        .join('\n\n')
+    : res.markdown;
   const text = json
     ? JSON.stringify(
         {

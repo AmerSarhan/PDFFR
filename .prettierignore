@@ -3,3 +3,6 @@ dist-demo
 node_modules
 package-lock.json
 *.pdf
+python/**/.venv
+python/**/dist
+docs/benchmark.md

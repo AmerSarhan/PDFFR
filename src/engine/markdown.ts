@@ -1,4 +1,4 @@
-import type { Block, ListItem } from './types';
+import type { Block, ListItem } from './types.js';
 
 function cell(s: string): string {
   return s.replace(/\|/g, '\\|').trim();

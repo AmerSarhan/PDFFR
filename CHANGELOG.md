@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 — 2026-09-03
+
+- Integrations: `pdffr-mcp` (MCP server: pdf_to_markdown, pdf_outline, pdf_tables), `pdffr-langchain` (LangChain.js loader), `pdffr-llamaindex` (LlamaIndex.TS reader) as workspace packages.
+
 ## 0.2.0 — 2026-09-03
 
 - Letter-spaced (tracked) headings join correctly instead of one word per glyph.

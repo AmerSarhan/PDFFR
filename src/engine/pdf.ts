@@ -1,6 +1,6 @@
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
-import { getEnv, type CanvasLike } from './env';
-import type { Region, Rules, Run } from './types';
+import { getEnv, type CanvasLike } from './env.js';
+import type { Region, Rules, Run } from './types.js';
 
 export type { PDFDocumentProxy, PDFPageProxy };
 

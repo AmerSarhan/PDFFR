@@ -9,11 +9,11 @@
  * This module is runtime-agnostic; `pdffr` (browser) and `pdffr/node` configure the runtime
  * and re-export it.
  */
-import { runPipeline } from './engine/pipeline';
-import { OcrPool } from './engine/ocr';
-import { blocksToMarkdown, joinPages } from './engine/markdown';
-import { setPdfWorkerSrc } from './engine/pdf';
-import type { Block, PageState, PipelineEvent, Stats } from './engine/types';
+import { runPipeline } from './engine/pipeline.js';
+import { OcrPool } from './engine/ocr.js';
+import { blocksToMarkdown, joinPages } from './engine/markdown.js';
+import { setPdfWorkerSrc } from './engine/pdf.js';
+import type { Block, PageState, PipelineEvent, Stats } from './engine/types.js';
 
 export type {
   Block,
@@ -25,13 +25,13 @@ export type {
   Run,
   Stats,
   TraceKind,
-} from './engine/types';
-export { OcrPool, type OcrPoolOptions } from './engine/ocr';
-export { blocksToMarkdown, joinPages } from './engine/markdown';
-export { runPipeline, type PipelineOptions } from './engine/pipeline';
-export { setPdfWorkerSrc } from './engine/pdf';
-export { buildLines, orderRuns } from './engine/layout';
-export type { Env, CanvasLike } from './engine/env';
+} from './engine/types.js';
+export { OcrPool, type OcrPoolOptions } from './engine/ocr.js';
+export { blocksToMarkdown, joinPages } from './engine/markdown.js';
+export { runPipeline, type PipelineOptions } from './engine/pipeline.js';
+export { setPdfWorkerSrc } from './engine/pdf.js';
+export { buildLines, orderRuns } from './engine/layout.js';
+export type { Env, CanvasLike } from './engine/env.js';
 
 export interface DecompileOptions {
   /** Escalate unexplained ink to on-device OCR. Default true. */
@@ -89,7 +89,9 @@ export async function terminateOcr(): Promise<void> {
 }
 
 async function toBuffer(input: ArrayBuffer | Uint8Array | Blob): Promise<ArrayBuffer | Uint8Array> {
-  if (input instanceof ArrayBuffer || input instanceof Uint8Array) return input;
+  if (input instanceof ArrayBuffer) return input;
+  // a Node Buffer is a Uint8Array subclass pdf.js refuses; hand it a plain view
+  if (input instanceof Uint8Array) return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   return input.arrayBuffer();
 }
 

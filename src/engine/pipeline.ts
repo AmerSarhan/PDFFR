@@ -1,10 +1,18 @@
-import { crop, extractNative, frameRuns, loadDoc, pageGraphics, renderPage, type PDFPageProxy } from './pdf';
-import { findRegions } from './oracle';
-import { OcrPool } from './ocr';
-import { buildLines, orderRuns } from './layout';
-import { bodySize, computeDropSet, countBlocks, toBlocks, type LayoutItem } from './structure';
-import { getEnv, type CanvasLike } from './env';
-import type { Block, PageState, PipelineEvent, Region, Run, Stats, TraceKind } from './types';
+import {
+  crop,
+  extractNative,
+  frameRuns,
+  loadDoc,
+  pageGraphics,
+  renderPage,
+  type PDFPageProxy,
+} from './pdf.js';
+import { findRegions } from './oracle.js';
+import { OcrPool } from './ocr.js';
+import { buildLines, orderRuns } from './layout.js';
+import { bodySize, computeDropSet, countBlocks, toBlocks, type LayoutItem } from './structure.js';
+import { getEnv, type CanvasLike } from './env.js';
+import type { Block, PageState, PipelineEvent, Region, Run, Stats, TraceKind } from './types.js';
 
 export interface PipelineOptions {
   ocr: OcrPool;

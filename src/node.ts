@@ -6,9 +6,9 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { setEnv } from './engine/env';
-import { setPdfWorkerSrc } from './engine/pdf';
-import { decompile, type DecompileOptions, type DecompileResult } from './core';
+import { setEnv } from './engine/env.js';
+import { setPdfWorkerSrc } from './engine/pdf.js';
+import { decompile, type DecompileOptions, type DecompileResult } from './core.js';
 
 const require = createRequire(import.meta.url);
 const workerPath = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
@@ -22,7 +22,7 @@ setEnv({
 });
 setPdfWorkerSrc(pathToFileURL(workerPath).href);
 
-export * from './core';
+export * from './core.js';
 
 /** Decompile a PDF file on disk. */
 export async function decompileFile(path: string, opts: DecompileOptions = {}): Promise<DecompileResult> {

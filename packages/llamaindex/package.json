@@ -1,0 +1,51 @@
+{
+  "name": "pdffr-llamaindex",
+  "version": "0.1.0",
+  "description": "LlamaIndex.TS reader backed by pdffr: PDF → Markdown documents per page, local, with OCR only where needed.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.8",
+    "pdffr": "^0.3.0",
+    "pdfjs-dist": "^6.3.289",
+    "tesseract.js": "^7.0.0"
+  },
+  "peerDependencies": {
+    "@llamaindex/core": ">=0.4.0"
+  },
+  "keywords": [
+    "llamaindex",
+    "reader",
+    "pdf",
+    "markdown",
+    "pdf-to-markdown",
+    "rag",
+    "ocr"
+  ],
+  "author": "Amer Sarhan <amer.sarhan@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmerSarhan/PDFFR.git",
+    "directory": "packages/llamaindex"
+  },
+  "homepage": "https://github.com/AmerSarhan/PDFFR/tree/main/packages/llamaindex#readme"
+}

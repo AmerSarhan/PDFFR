@@ -1,5 +1,5 @@
-import type { Region, Run } from './types';
-import type { CanvasLike } from './env';
+import type { Region, Run } from './types.js';
+import type { CanvasLike } from './env.js';
 
 /**
  * Render-diff oracle.

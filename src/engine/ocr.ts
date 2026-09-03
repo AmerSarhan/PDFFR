@@ -1,7 +1,7 @@
 import { createWorker, OEM, PSM, type Worker } from 'tesseract.js';
-import type { OcrResult, Region, Run } from './types';
-import { crop } from './pdf';
-import { getEnv, type CanvasLike } from './env';
+import type { OcrResult, Region, Run } from './types.js';
+import { crop } from './pdf.js';
+import { getEnv, type CanvasLike } from './env.js';
 
 type Job<T> = { fn: (w: Worker) => Promise<T>; resolve: (v: T) => void; reject: (e: any) => void };
 

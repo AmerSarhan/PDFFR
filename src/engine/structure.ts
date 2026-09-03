@@ -1,5 +1,5 @@
-import type { Block, Leaf, Line, ListItem } from './types';
-import { bulletOf, median } from './layout';
+import type { Block, Leaf, Line, ListItem } from './types.js';
+import { bulletOf, median } from './layout.js';
 
 /** Char-weighted modal font size — the body size everything else is measured against. */
 export function bodySize(lines: Line[]): number {

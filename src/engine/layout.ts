@@ -1,4 +1,4 @@
-import type { Leaf, Line, Rules, Run, Table } from './types';
+import type { Leaf, Line, Rules, Run, Table } from './types.js';
 
 /* ---------- small helpers ---------- */
 export function median(a: number[]): number {

@@ -1,6 +1,6 @@
 /** Browser entry: modern pdf.js build, DOM canvases, tesseract fed canvases directly. */
 import * as pdfjs from 'pdfjs-dist';
-import { setEnv } from './engine/env';
+import { setEnv } from './engine/env.js';
 
 setEnv({
   pdfjs,
@@ -17,4 +17,4 @@ setEnv({
   },
 });
 
-export * from './core';
+export * from './core.js';

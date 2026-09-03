@@ -1,0 +1,50 @@
+{
+  "name": "pdffr-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for pdffr: PDF → Markdown for AI agents, local and private. Tools: pdf_to_markdown, pdf_outline, pdf_tables.",
+  "type": "module",
+  "bin": {
+    "pdffr-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "@napi-rs/canvas": "^1.0.8",
+    "pdffr": "^0.3.0",
+    "pdfjs-dist": "^6.3.289",
+    "tesseract.js": "^7.0.0",
+    "zod": "^3.25.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "pdf",
+    "markdown",
+    "pdf-to-markdown",
+    "ocr",
+    "claude",
+    "cursor",
+    "agent",
+    "rag"
+  ],
+  "author": "Amer Sarhan <amer.sarhan@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmerSarhan/PDFFR.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/AmerSarhan/PDFFR/tree/main/packages/mcp#readme"
+}

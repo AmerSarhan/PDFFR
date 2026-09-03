@@ -110,6 +110,18 @@ pdffr paper.pdf --no-ocr -q       # native text only, silent
 
 Types: `Block`, `ListItem`, `Run`, `Region`, `Rules`, `PageState`, `Stats`, `PipelineEvent`.
 
+## Integrations
+
+| Package                                   | What it is                                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [`pdffr-mcp`](packages/mcp)               | MCP server for Claude Desktop / Claude Code / Cursor / any agent: `pdf_to_markdown`, `pdf_outline`, `pdf_tables` |
+| [`pdffr-langchain`](packages/langchain)   | LangChain.js document loader — one Markdown `Document` per page                                                  |
+| [`pdffr-llamaindex`](packages/llamaindex) | LlamaIndex.TS reader — one Markdown `Document` per page                                                          |
+
+```json
+{ "mcpServers": { "pdffr": { "command": "npx", "args": ["-y", "pdffr-mcp"] } } }
+```
+
 ## How a page flows through
 
 ```
